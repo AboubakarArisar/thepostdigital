@@ -1,26 +1,111 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fbfaf7;
+  --foreground: #151515;
+  --paper: #fbfaf7;
+  --elevated: #ffffff;
+  --muted: #5f5b55;
+  --rule: #181818;
+  --soft-rule: #d7d1c6;
+  --chrome: #111111;
+  --inverse: #ffffff;
+  --accent: #b1182a;
+  --accent-soft: #f3dfe2;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-ink: var(--foreground);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-soft-rule: var(--soft-rule);
+  --color-elevated: var(--elevated);
+  --color-chrome: var(--chrome);
+  --color-inverse: var(--inverse);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: "Inter", "Arial", sans-serif;
+  --font-serif-display: "Newsreader", "Iowan Old Style", "Georgia", serif;
+  --font-urdu: "Noto Nastaliq Urdu", "Noto Naskh Arabic", "Jameel Noori Nastaleeq", serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html.dark {
+  --background: #0f0f0e;
+  --foreground: #ddd8cf;
+  --paper: #141311;
+  --elevated: #1a1916;
+  --muted: #9b9488;
+  --rule: #5a554c;
+  --soft-rule: #302d29;
+  --chrome: #0a0a09;
+  --inverse: #ddd8cf;
+  --accent: #d04651;
+  --accent-soft: #2d171a;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter", Arial, Helvetica, sans-serif;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+img {
+  display: block;
+}
+
+.font-serif-display {
+  font-family: "Newsreader", "Iowan Old Style", Georgia, serif;
+}
+
+.font-masthead {
+  font-family: "Old English Text MT", "UnifrakturMaguntia", "UnifrakturCook",
+    "Cloister Black", "Blackletter", Georgia, serif;
+  letter-spacing: 0;
+}
+
+.font-urdu {
+  font-family: "Noto Nastaliq Urdu", "Noto Naskh Arabic", "Jameel Noori Nastaleeq", serif;
+  line-height: 2.05;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+.article-body {
+  font-size: clamp(1.08rem, 1vw + 0.9rem, 1.28rem);
+  line-height: 1.9;
+}
+
+.article-body p + p {
+  margin-top: 1.35rem;
+}
+
+.editor-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 3rem;
+  }
 }

@@ -2,6 +2,27 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+## Cloudinary media setup
+
+Copy the values from Cloudinary's API keys screen into `.env.local`:
+
+```bash
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+ADMIN_EMAIL=admin@post.local
+ADMIN_PASSWORD=ChangeMeAdmin123!
+ADMIN_SESSION_SECRET=replace-with-a-long-random-secret
+```
+
+The admin editor uploads images and videos through
+`/api/cloudinary-upload`. The API secret stays server-side and is used only to
+sign the upload request. Both the browser and API reject files larger than
+100 MB so the free Cloudinary plan is handled cleanly before upload.
+
+The admin portal is protected by the seeded admin credentials above. Change the
+password and session secret before sharing the app.
+
 First, run the development server:
 
 ```bash

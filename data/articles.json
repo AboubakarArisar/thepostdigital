@@ -1,0 +1,28 @@
+[
+  {
+    "title": "test story for admin 1",
+    "slug": "test-story-for-admin-1",
+    "excerpt": "testng story admin 1",
+    "body": [
+      "test sstory admin 1"
+    ],
+    "language": "en",
+    "category": "Politics",
+    "contentType": "news",
+    "tags": [],
+    "author": "News Desk",
+    "featuredImage": "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1400&q=80",
+    "mediaUrl": "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1400&q=80",
+    "mediaType": "image",
+    "imageCaption": "test story for admin 1",
+    "status": "published",
+    "publishedAt": "2026-05-09T10:46:03.082Z",
+    "readingTime": 1,
+    "views": 0,
+    "isBreaking": false,
+    "isFeatured": false,
+    "createdBy": "aboubakar.dev@gmail.com",
+    "approvedBy": "admin@post.local",
+    "approvedAt": "2026-05-09T10:53:41.423Z"
+  }
+]

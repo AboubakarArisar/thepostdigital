@@ -1,0 +1,22 @@
+[
+  {
+    "email": "admin@post.local",
+    "name": "Super Admin",
+    "passwordHash": "3b6a7238cd374b7dd6f1d817bf10d67a:89bd149f9964a592da1ab4a3fd6d5b3f304e744f7576b62eb091c5f1a727e4df9353cbc1054759c30671c55016a4a8a8127e25aa3604b9371d2415baab1a857d",
+    "role": "super_admin",
+    "status": "approved",
+    "createdAt": "2026-05-09T10:44:29.150Z",
+    "verifiedAt": "2026-05-09T10:44:29.150Z",
+    "verifiedBy": "admin@post.local"
+  },
+  {
+    "email": "aboubakar.dev@gmail.com",
+    "name": "Abou Bakar",
+    "passwordHash": "aa2310db867fe5a6bf6418b5ad3faf9b:cb77d14c035a8bb71b9db0eac4d3aecb88860d064d8a079decc19ef94d338941fb1bcd46848bc4e9034dc9a57ca05f4e9f62e3eee47b058011e3dfe77f674725",
+    "role": "admin",
+    "status": "approved",
+    "createdAt": "2026-05-09T10:45:10.579Z",
+    "verifiedAt": "2026-05-09T10:45:24.819Z",
+    "verifiedBy": "admin@post.local"
+  }
+]
