@@ -63,6 +63,11 @@ img {
   display: block;
 }
 
+html.dark .site-logo-image[data-tone="dark"] {
+  filter: invert(1) brightness(1.7);
+  opacity: 0.96;
+}
+
 .font-serif-display {
   font-family: "Newsreader", "Iowan Old Style", Georgia, serif;
 }

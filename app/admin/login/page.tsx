@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminLoginForm } from "@/components/AdminLoginForm";
 import { AdminSignupForm } from "@/components/AdminSignupForm";
+import { SiteLogo } from "@/components/SiteLogo";
 import { isAdminSession } from "@/lib/auth";
 
 export default async function LoginPage() {
@@ -12,8 +13,8 @@ export default async function LoginPage() {
       <section className="w-full max-w-5xl border-4 border-black bg-paper">
         <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
           <div className="border-b-4 border-black p-6 lg:border-b-0 lg:border-r-4">
-            <Link href="/" className="text-xs font-black uppercase tracking-[0.16em]">
-              Public edition
+            <Link href="/" aria-label="The Post Digital home" className="block w-fit">
+              <SiteLogo className="h-12 w-64" priority />
             </Link>
             <h1 className="font-serif-display mt-6 text-5xl font-black leading-none">
               Editorial login

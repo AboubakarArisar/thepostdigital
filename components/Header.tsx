@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { categories } from "@/lib/categories";
+import { SiteLogo } from "./SiteLogo";
 import { ThemeToggle } from "./ThemeToggle";
 
 const utilityLinks = [
@@ -63,9 +64,10 @@ export function Header() {
         <div className="bg-paper py-4 text-center sm:py-5">
           <Link
             href="/"
-            className="font-serif-display text-4xl font-black leading-none text-ink sm:text-5xl"
+            aria-label="The Post Digital home"
+            className="mx-auto block w-fit"
           >
-            The Post Digital
+            <SiteLogo className="h-14 w-[min(82vw,25rem)] sm:h-16 sm:w-[30rem]" priority />
           </Link>
           <p className="mx-auto mt-2 max-w-2xl text-[11px] uppercase tracking-[0.12em] text-muted">
             <Link href="/search" className="font-black text-ink hover:underline">

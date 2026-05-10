@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminLogoutButton } from "./AdminLogoutButton";
+import { SiteLogo } from "./SiteLogo";
 
 const adminLinks = [
   { href: "/admin", label: "Dashboard" },
@@ -12,9 +13,9 @@ export function AdminSidebar() {
   return (
     <aside className="border-b-4 border-black bg-black text-white md:min-h-screen md:border-b-0 md:border-r-4">
       <div className="p-4">
-        <p className="font-serif-display text-2xl font-black uppercase">
-          Post Desk
-        </p>
+        <Link href="/admin" aria-label="Post Desk dashboard" className="block w-fit">
+          <SiteLogo className="h-10 w-44" tone="light" />
+        </Link>
         <p className="mt-1 text-xs uppercase tracking-[0.16em] text-zinc-400">
           Editorial admin
         </p>

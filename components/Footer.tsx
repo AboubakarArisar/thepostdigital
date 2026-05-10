@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { categories } from "@/lib/data";
+import { SiteLogo } from "./SiteLogo";
 
 const footerLinks = [
   "About",
@@ -30,9 +31,9 @@ export function Footer() {
 
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="border-b border-rule pb-6 text-center">
-          <p className="font-serif-display text-4xl font-black leading-none sm:text-5xl">
-            The Post Digital
-          </p>
+          <Link href="/" aria-label="The Post Digital home" className="mx-auto block w-fit">
+            <SiteLogo className="h-12 w-[min(78vw,22rem)] sm:h-14 sm:w-[26rem]" />
+          </Link>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted">
             Independent bilingual reporting for Pakistan, built for careful
             reading and fast public record.
