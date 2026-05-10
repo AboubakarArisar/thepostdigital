@@ -54,7 +54,7 @@ export function Header() {
           </div>
           <p className="text-center">{today}</p>
           <div className="flex items-center justify-center gap-2 md:justify-end">
-            <Link href="/admin" className="hidden hover:text-ink sm:inline">
+            <Link href="/admin" className="font-black text-ink hover:underline sm:font-normal sm:text-muted sm:hover:text-ink sm:hover:no-underline">
               Admin
             </Link>
             <ThemeToggle />

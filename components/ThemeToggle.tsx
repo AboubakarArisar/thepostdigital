@@ -1,25 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 
 function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
   localStorage.setItem("theme", theme);
+  window.dispatchEvent(new Event("themechange"));
+}
+
+function getThemeSnapshot(): Theme {
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
+function getServerThemeSnapshot(): Theme {
+  return "light";
+}
+
+function subscribeToTheme(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("themechange", callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("themechange", callback);
+  };
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(() =>
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("dark")
-      ? "dark"
-      : "light",
+  const theme = useSyncExternalStore(
+    subscribeToTheme,
+    getThemeSnapshot,
+    getServerThemeSnapshot,
   );
 
   function toggleTheme() {
     const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
     applyTheme(nextTheme);
   }
 
@@ -33,7 +50,7 @@ export function ThemeToggle() {
       suppressHydrationWarning
     >
       <span aria-hidden="true" className="text-base leading-none">
-        {theme === "dark" ? "☀" : "☾"}
+        {theme === "dark" ? "\u2600" : "\u263E"}
       </span>
     </button>
   );

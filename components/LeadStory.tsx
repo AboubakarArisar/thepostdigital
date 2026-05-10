@@ -14,7 +14,7 @@ export function LeadStory({ article }: { article: Article }) {
         href={`/article/${article.slug}`}
         className="block aspect-[16/10] overflow-hidden border border-soft-rule bg-elevated"
       >
-        <ArticleImage article={article} />
+        <ArticleImage article={article} priority />
       </Link>
       <div className="mt-4">
         <div>

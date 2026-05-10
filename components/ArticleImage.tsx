@@ -7,7 +7,11 @@ type ArticleImageProps = {
   className?: string;
 };
 
-export function ArticleImage({ article, className = "" }: ArticleImageProps) {
+export function ArticleImage({
+  article,
+  priority = false,
+  className = "",
+}: ArticleImageProps) {
   if (article.mediaType === "video") {
     return (
       <video
@@ -27,6 +31,8 @@ export function ArticleImage({ article, className = "" }: ArticleImageProps) {
       width={1400}
       height={900}
       unoptimized
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : "auto"}
       className={`h-full w-full object-cover grayscale ${className}`}
     />
   );
