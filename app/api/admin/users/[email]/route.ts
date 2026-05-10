@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { getAdminSession, isSuperAdmin, verifyAdminAccount } from "@/lib/auth";
+import {
+  getAdminSession,
+  isSuperAdmin,
+  removeAdminAccount,
+  verifyAdminAccount,
+} from "@/lib/auth";
 
 export async function PATCH(
   request: Request,
@@ -47,6 +52,43 @@ export async function PATCH(
       {
         error:
           error instanceof Error ? error.message : "Admin account could not be updated.",
+      },
+      { status: 409 },
+    );
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ email: string }> },
+) {
+  const session = await getAdminSession();
+
+  if (!session || !isSuperAdmin(session)) {
+    return NextResponse.json(
+      { error: "Only the super admin can remove admin accounts." },
+      { status: 403 },
+    );
+  }
+
+  const { email } = await params;
+
+  try {
+    const user = await removeAdminAccount(decodeURIComponent(email));
+
+    if (!user) {
+      return NextResponse.json({ error: "Admin account was not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      email: user.email,
+      removed: true,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Admin account could not be removed.",
       },
       { status: 409 },
     );

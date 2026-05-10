@@ -194,6 +194,22 @@ export async function verifyAdminAccount(
   return nextUsers.find((user) => user.email === normalizedEmail) ?? null;
 }
 
+export async function removeAdminAccount(email: string) {
+  const normalizedEmail = email.toLowerCase();
+  const users = await getAdminUsers();
+  const user = users.find((item) => item.email === normalizedEmail);
+
+  if (!user) return null;
+
+  if (user.role === "super_admin") {
+    throw new Error("The super admin account cannot be removed.");
+  }
+
+  const nextUsers = users.filter((item) => item.email !== normalizedEmail);
+  await writeAdminUsers(nextUsers);
+  return user;
+}
+
 export async function createAdminSession(session: AdminSession) {
   const issuedAt = Date.now().toString();
   const value = `${session.email}|${session.role}|${issuedAt}`;

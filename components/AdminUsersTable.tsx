@@ -35,6 +35,28 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
     setActiveEmail("");
   }
 
+  async function removeAccount(email: string, name: string) {
+    const shouldRemove = window.confirm(
+      `Remove ${name}'s admin account? They will no longer be able to sign in.`,
+    );
+
+    if (!shouldRemove) return;
+
+    setError("");
+    setActiveEmail(email);
+    const response = await fetch(`/api/admin/users/${encodeURIComponent(email)}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      router.refresh();
+    } else {
+      const result = (await response.json()) as { error?: string };
+      setError(result.error || "Could not remove this admin account.");
+    }
+    setActiveEmail("");
+  }
+
   return (
     <div className="border-2 border-black">
       <div className="border-b-2 border-black bg-black px-3 py-3 text-white">
@@ -103,6 +125,15 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                       Reject
                     </button>
                   </div>
+                ) : user.role === "admin" && user.status === "approved" ? (
+                  <button
+                    className="border border-black px-3 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-accent hover:text-white disabled:cursor-wait disabled:opacity-60"
+                    type="button"
+                    disabled={activeEmail === user.email}
+                    onClick={() => removeAccount(user.email, user.name)}
+                  >
+                    {activeEmail === user.email ? "Removing" : "Remove"}
+                  </button>
                 ) : (
                   <span className="text-zinc-500">Reviewed</span>
                 )}
