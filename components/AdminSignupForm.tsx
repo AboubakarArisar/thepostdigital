@@ -2,6 +2,12 @@
 
 import { FormEvent, useState } from "react";
 
+const passwordRules = [
+  "Use at least 8 characters.",
+  "Choose something unique to this newsroom account.",
+  "You can sign in after a super admin approves your request.",
+];
+
 export function AdminSignupForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -9,9 +15,18 @@ export function AdminSignupForm() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const trimmedName = name.trim();
+  const trimmedEmail = email.trim();
+  const canSubmit =
+    trimmedName.length > 1 && trimmedEmail.includes("@") && password.length >= 8;
 
   async function signup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canSubmit) {
+      setError("Enter your name, a valid email, and a password with 8+ characters.");
+      return;
+    }
+
     setError("");
     setMessage("");
     setIsSubmitting(true);
@@ -19,7 +34,7 @@ export function AdminSignupForm() {
     const response = await fetch("/api/admin/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name: trimmedName, email: trimmedEmail, password }),
     });
     const result = (await response.json()) as { error?: string; message?: string };
 
@@ -37,19 +52,30 @@ export function AdminSignupForm() {
   }
 
   return (
-    <form className="mt-5 space-y-4 border-t-2 border-black pt-5" onSubmit={signup}>
-      <p className="text-xs font-black uppercase tracking-[0.16em]">
-        Request admin access
-      </p>
+    <form className="space-y-4" onSubmit={signup}>
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-accent">
+          Request admin access
+        </p>
+        <h2 className="font-serif-display mt-2 text-3xl font-black leading-none">
+          Request access
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-zinc-700">
+          Enter your details and a super admin will review the request.
+        </p>
+      </div>
       <div>
         <label className="editor-label" htmlFor="signup-name">
-          Name
+          Full name
         </label>
         <input
           id="signup-name"
+          required
+          autoComplete="name"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="w-full border border-black bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+          placeholder="e.g. Ayesha Khan"
+          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
         />
       </div>
       <div>
@@ -59,9 +85,12 @@ export function AdminSignupForm() {
         <input
           id="signup-email"
           type="email"
+          required
+          autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full border border-black bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+          placeholder="name@newsroom.com"
+          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
         />
       </div>
       <div>
@@ -71,27 +100,41 @@ export function AdminSignupForm() {
         <input
           id="signup-password"
           type="password"
+          required
+          minLength={8}
+          autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full border border-black bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+          placeholder="Minimum 8 characters"
+          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
         />
+        <ul className="mt-3 space-y-2 text-xs leading-5 text-zinc-600">
+          {passwordRules.map((rule) => (
+            <li className="flex gap-2" key={rule}>
+              <span aria-hidden="true" className="font-black text-accent">
+                -
+              </span>
+              <span>{rule}</span>
+            </li>
+          ))}
+        </ul>
       </div>
       {error && (
-        <p className="border border-black bg-accent-soft p-3 text-sm font-bold">
+        <p className="border border-black bg-accent-soft p-3 text-sm font-bold" role="alert">
           {error}
         </p>
       )}
       {message && (
-        <p className="border border-black bg-white p-3 text-sm font-bold">
+        <p className="border border-black bg-white p-3 text-sm font-bold" role="status">
           {message}
         </p>
       )}
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !canSubmit}
         className="block w-full border-2 border-black px-3 py-3 text-center text-sm font-black uppercase tracking-[0.14em] hover:bg-black hover:text-white disabled:cursor-wait disabled:opacity-60"
       >
-        {isSubmitting ? "Sending..." : "Create pending account"}
+        {isSubmitting ? "Sending..." : "Submit request"}
       </button>
     </form>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { categories } from "@/lib/data";
 
 const footerLinks = [
+  "About",
   "Contact",
   "Advertise",
   "Privacy",
@@ -16,9 +17,13 @@ export function Footer() {
       <div className="bg-chrome py-2 text-inverse">
         <div className="scrollbar-none mx-auto flex max-w-7xl justify-center gap-7 overflow-x-auto px-4 text-[12px] uppercase tracking-[0.04em]">
           {footerLinks.map((link) => (
-            <a href="#" key={link} className="shrink-0 opacity-80 hover:opacity-100">
+            <Link
+              href={link === "About" ? "/about" : "#"}
+              key={link}
+              className="shrink-0 opacity-80 hover:opacity-100"
+            >
               {link}
-            </a>
+            </Link>
           ))}
         </div>
       </div>

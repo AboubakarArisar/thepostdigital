@@ -42,9 +42,12 @@ export function AdminLoginForm() {
         <input
           id="email"
           type="email"
+          required
+          autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full border border-black bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+          placeholder="admin@post.local"
+          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
         />
       </div>
       <div>
@@ -54,13 +57,16 @@ export function AdminLoginForm() {
         <input
           id="password"
           type="password"
+          required
+          autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full border border-black bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+          placeholder="Your password"
+          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
         />
       </div>
       {error && (
-        <p className="border border-black bg-accent-soft p-3 text-sm font-bold">
+        <p className="border border-black bg-accent-soft p-3 text-sm font-bold" role="alert">
           {error}
         </p>
       )}

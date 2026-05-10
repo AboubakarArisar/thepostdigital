@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { formatDate } from "@/lib/format";
 import type { AdminUser } from "@/lib/types";
 
@@ -12,8 +13,13 @@ const statusClass = {
 
 export function AdminUsersTable({ users }: { users: AdminUser[] }) {
   const router = useRouter();
+  const [activeEmail, setActiveEmail] = useState("");
+  const [error, setError] = useState("");
+  const pendingUsers = users.filter((user) => user.status === "pending");
 
   async function verify(email: string, status: "approved" | "rejected") {
+    setError("");
+    setActiveEmail(email);
     const response = await fetch(`/api/admin/users/${encodeURIComponent(email)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -22,14 +28,36 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
 
     if (response.ok) {
       router.refresh();
+    } else {
+      const result = (await response.json()) as { error?: string };
+      setError(result.error || "Could not update this admin request.");
     }
+    setActiveEmail("");
   }
 
   return (
-    <div className="overflow-x-auto border-2 border-black">
+    <div className="border-2 border-black">
+      <div className="border-b-2 border-black bg-black px-3 py-3 text-white">
+        <p className="text-sm font-black uppercase tracking-[0.16em]">
+          Admin account verification
+        </p>
+        <p className="mt-1 text-xs text-zinc-300">
+          {pendingUsers.length === 0
+            ? "No pending access requests right now."
+            : `${pendingUsers.length} pending request${
+                pendingUsers.length === 1 ? "" : "s"
+              } need review.`}
+        </p>
+      </div>
+      {error && (
+        <p className="border-b-2 border-black bg-accent-soft p-3 text-sm font-bold" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="overflow-x-auto">
       <table className="w-full min-w-[680px] border-collapse text-left text-sm">
         <caption className="border-b-2 border-black bg-black px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-white">
-          Admin account verification
+          Account list
         </caption>
         <thead>
           <tr className="border-b-2 border-black text-xs uppercase tracking-[0.14em]">
@@ -59,15 +87,17 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                 {user.role === "admin" && user.status === "pending" ? (
                   <div className="flex flex-wrap gap-2">
                     <button
-                      className="cursor-pointer font-bold underline"
+                      className="border border-black bg-black px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60"
                       type="button"
+                      disabled={activeEmail === user.email}
                       onClick={() => verify(user.email, "approved")}
                     >
-                      Approve
+                      {activeEmail === user.email ? "Saving" : "Approve"}
                     </button>
                     <button
-                      className="cursor-pointer font-bold underline"
+                      className="border border-black px-3 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-accent-soft disabled:cursor-wait disabled:opacity-60"
                       type="button"
+                      disabled={activeEmail === user.email}
                       onClick={() => verify(user.email, "rejected")}
                     >
                       Reject
@@ -81,6 +111,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

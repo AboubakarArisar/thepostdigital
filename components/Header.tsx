@@ -47,6 +47,9 @@ export function Header() {
             <Link href="/search?sort=latest" className="hover:text-ink">
               Latest
             </Link>
+            <Link href="/about" className="hover:text-ink">
+              About
+            </Link>
           </div>
           <p className="text-center">{today}</p>
           <div className="flex items-center justify-center gap-2 md:justify-end">
@@ -81,6 +84,9 @@ export function Header() {
           </Link>
           <Link href="/search" className="shrink-0 hover:underline">
             Latest
+          </Link>
+          <Link href="/about" className="shrink-0 hover:underline">
+            About
           </Link>
           {alertLinks.map((label) => (
             <Link
