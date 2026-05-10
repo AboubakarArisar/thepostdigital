@@ -8,9 +8,105 @@ import { MostRead } from "@/components/MostRead";
 import { NewsletterBox } from "@/components/NewsletterBox";
 import { SidebarLatest } from "@/components/SidebarLatest";
 import { formatCategories, getPublishedArticles } from "@/lib/data";
+import type { Language } from "@/lib/types";
 
-export default async function Home() {
-  const published = await getPublishedArticles();
+type HomeSearchParams = Promise<{
+  language?: string | string[] | undefined;
+}>;
+
+type SelectedLanguage = "all" | Language;
+
+const languageOptions: Array<{
+  label: string;
+  shortLabel: string;
+  value: SelectedLanguage;
+  href: string;
+}> = [
+  { label: "All editions", shortLabel: "All", value: "all", href: "/" },
+  { label: "English", shortLabel: "EN", value: "en", href: "/?language=en" },
+  { label: "Urdu", shortLabel: "UR", value: "ur", href: "/?language=ur" },
+];
+
+function normalizeLanguage(value: string | string[] | undefined) {
+  const selected = Array.isArray(value) ? value[0] : value;
+  return selected === "en" || selected === "ur" ? selected : "all";
+}
+
+function LanguageSwitcher({
+  selectedLanguage,
+  counts,
+}: {
+  selectedLanguage: SelectedLanguage;
+  counts: Record<SelectedLanguage, number>;
+}) {
+  const selectedLabel =
+    languageOptions.find((option) => option.value === selectedLanguage)?.label ??
+    "All editions";
+
+  return (
+    <div className="mx-auto mt-5 w-full max-w-lg">
+      <div className="mb-2 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-muted">
+        <span className="h-px w-8 bg-soft-rule" aria-hidden="true" />
+        <span>
+          {selectedLabel} / {counts[selectedLanguage]} stories
+        </span>
+        <span className="h-px w-8 bg-soft-rule" aria-hidden="true" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-1 rounded-[8px] border border-soft-rule bg-elevated p-1 shadow-sm">
+        {languageOptions.map((option) => {
+          const isActive = option.value === selectedLanguage;
+
+          return (
+            <Link
+              key={option.value}
+              href={option.href}
+              aria-current={isActive ? "page" : undefined}
+              className={`group flex min-h-11 items-center justify-center gap-2 rounded-[6px] px-2 text-center transition ${
+                isActive
+                  ? "bg-chrome text-inverse shadow-sm"
+                  : "text-muted hover:bg-accent-soft hover:text-ink"
+              }`}
+            >
+              <span className="hidden text-[10px] font-black uppercase tracking-[0.14em] opacity-70 sm:inline">
+                {option.shortLabel}
+              </span>
+              <span className="text-[11px] font-black uppercase tracking-[0.1em] sm:text-xs">
+                {option.label}
+              </span>
+              <span
+                className={`grid h-5 min-w-5 place-items-center rounded-[4px] px-1 text-[10px] font-black ${
+                  isActive
+                    ? "bg-accent text-white"
+                    : "bg-paper text-muted group-hover:text-accent"
+                }`}
+              >
+                {counts[option.value]}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: HomeSearchParams;
+}) {
+  const allPublished = await getPublishedArticles();
+  const selectedLanguage = normalizeLanguage((await searchParams).language);
+  const languageCounts = {
+    all: allPublished.length,
+    en: allPublished.filter((article) => article.language === "en").length,
+    ur: allPublished.filter((article) => article.language === "ur").length,
+  };
+  const published =
+    selectedLanguage === "all"
+      ? allPublished
+      : allPublished.filter((article) => article.language === selectedLanguage);
   const sectionArticles = formatCategories
     .map((category) => {
       const type =
@@ -29,7 +125,7 @@ export default async function Home() {
     })
     .filter((item) => item !== null);
 
-  if (published.length === 0) {
+  if (allPublished.length === 0) {
     return (
       <>
         <Header />
@@ -45,6 +141,36 @@ export default async function Home() {
               Publish a story from the protected admin portal to fill the front
               page.
             </p>
+          </section>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (published.length === 0) {
+    const selectedLabel =
+      selectedLanguage === "ur" ? "Urdu" : selectedLanguage === "en" ? "English" : "selected";
+
+    return (
+      <>
+        <Header />
+        <main className="mx-auto grid w-full max-w-4xl flex-1 place-items-center px-4 py-20 text-center">
+          <section className="border-2 border-rule p-8">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-accent">
+              Language filter
+            </p>
+            <h1 className="font-serif-display mt-3 text-4xl font-black text-ink">
+              No {selectedLabel} stories are published yet.
+            </h1>
+            <p className="mt-3 text-muted">
+              Choose another language or publish a story in this language from
+              the admin desk.
+            </p>
+            <LanguageSwitcher
+              counts={languageCounts}
+              selectedLanguage={selectedLanguage}
+            />
           </section>
         </main>
         <Footer />
@@ -71,6 +197,10 @@ export default async function Home() {
           <h1 className="font-serif-display mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl">
             Essential reporting, analysis and opinion
           </h1>
+          <LanguageSwitcher
+            counts={languageCounts}
+            selectedLanguage={selectedLanguage}
+          />
         </section>
 
         <div className="grid gap-5 lg:grid-cols-[17rem_1fr_18rem]">

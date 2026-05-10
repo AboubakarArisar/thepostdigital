@@ -281,11 +281,18 @@ export async function getPublishedArticleBySlug(slug: string) {
 
 export async function getRelatedArticles(article: Article) {
   const published = await getPublishedArticles();
-
-  return published
+  const related = published
     .filter(
       (item) => item.slug !== article.slug && item.category === article.category,
     )
-    .concat(published.filter((item) => item.slug !== article.slug))
+    .concat(published.filter((item) => item.slug !== article.slug));
+  const seenSlugs = new Set<string>();
+
+  return related
+    .filter((item) => {
+      if (seenSlugs.has(item.slug)) return false;
+      seenSlugs.add(item.slug);
+      return true;
+    })
     .slice(0, 3);
 }
