@@ -14,31 +14,6 @@ export function Header() {
 
   return (
     <header className="border-b border-rule bg-paper">
-      {/* Temporarily disabled because the upper mobile bar was not dragging reliably.
-      <div className="bg-chrome text-inverse">
-        <nav
-          aria-label="Network links"
-          className="scrollbar-none mx-auto flex max-w-7xl justify-center gap-6 overflow-x-auto px-4 py-2 text-[11px] uppercase tracking-[0.08em]"
-        >
-          {[
-            "Democracy Dies in Darkness",
-            "Election 2026",
-            "Markets",
-            "World",
-            "Climate",
-            "Opinion",
-            "Audio",
-            "Games",
-            "Cooking",
-          ].map((link) => (
-            <a href="#" key={link} className="shrink-0 opacity-80 hover:opacity-100">
-              {link}
-            </a>
-          ))}
-        </nav>
-      </div>
-      */}
-
       <div className="mx-auto max-w-7xl px-4">
         <div className="grid items-center gap-3 border-b border-soft-rule py-3 text-[11px] uppercase tracking-[0.1em] text-muted md:grid-cols-[1fr_auto_1fr]">
           <div className="hidden gap-3 md:flex">

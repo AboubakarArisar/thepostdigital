@@ -114,11 +114,11 @@ export default async function SearchPage({
   const params = await searchParams;
   const selectedCategory = firstParam(params.category) ?? "";
   const selectedDate = firstParam(params.date) ?? "";
-  const selectedLanguage = firstParam(params.language) ?? "";
+  const selectedLanguage = firstParam(params.language) ?? "en";
   const selectedStatus = firstParam(params.status) ?? "published";
   const query = firstParam(params.q) ?? "";
   const sort = firstParam(params.sort) ?? "";
-  const language = isLanguage(selectedLanguage) ? selectedLanguage : "";
+  const language = isLanguage(selectedLanguage) ? selectedLanguage : "en";
   const status = isStatus(selectedStatus) ? selectedStatus : "";
   const filteredArticles = articles
     .filter((article) => matchesQuery(article, query))

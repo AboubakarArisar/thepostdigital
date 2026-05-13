@@ -14,34 +14,31 @@ type HomeSearchParams = Promise<{
   language?: string | string[] | undefined;
 }>;
 
-type SelectedLanguage = "all" | Language;
-
 const languageOptions: Array<{
   label: string;
   shortLabel: string;
-  value: SelectedLanguage;
+  value: Language;
   href: string;
 }> = [
-  { label: "All editions", shortLabel: "All", value: "all", href: "/" },
-  { label: "English", shortLabel: "EN", value: "en", href: "/?language=en" },
+  { label: "English", shortLabel: "EN", value: "en", href: "/" },
   { label: "Urdu", shortLabel: "UR", value: "ur", href: "/?language=ur" },
 ];
 
 function normalizeLanguage(value: string | string[] | undefined) {
   const selected = Array.isArray(value) ? value[0] : value;
-  return selected === "en" || selected === "ur" ? selected : "all";
+  return selected === "ur" ? selected : "en";
 }
 
 function LanguageSwitcher({
   selectedLanguage,
   counts,
 }: {
-  selectedLanguage: SelectedLanguage;
-  counts: Record<SelectedLanguage, number>;
+  selectedLanguage: Language;
+  counts: Record<Language, number>;
 }) {
   const selectedLabel =
     languageOptions.find((option) => option.value === selectedLanguage)?.label ??
-    "All editions";
+    "English";
 
   return (
     <div className="mx-auto mt-5 w-full max-w-lg">
@@ -53,7 +50,7 @@ function LanguageSwitcher({
         <span className="h-px w-8 bg-soft-rule" aria-hidden="true" />
       </div>
 
-      <div className="grid grid-cols-3 gap-1 rounded-[8px] border border-soft-rule bg-elevated p-1 shadow-sm">
+      <div className="grid grid-cols-2 gap-1 rounded-[8px] border border-soft-rule bg-elevated p-1 shadow-sm">
         {languageOptions.map((option) => {
           const isActive = option.value === selectedLanguage;
 
@@ -99,14 +96,12 @@ export default async function Home({
   const allPublished = await getPublishedArticles();
   const selectedLanguage = normalizeLanguage((await searchParams).language);
   const languageCounts = {
-    all: allPublished.length,
     en: allPublished.filter((article) => article.language === "en").length,
     ur: allPublished.filter((article) => article.language === "ur").length,
   };
-  const published =
-    selectedLanguage === "all"
-      ? allPublished
-      : allPublished.filter((article) => article.language === selectedLanguage);
+  const published = allPublished.filter(
+    (article) => article.language === selectedLanguage,
+  );
   const sectionArticles = formatCategories
     .map((category) => {
       const type =
@@ -149,8 +144,7 @@ export default async function Home({
   }
 
   if (published.length === 0) {
-    const selectedLabel =
-      selectedLanguage === "ur" ? "Urdu" : selectedLanguage === "en" ? "English" : "selected";
+    const selectedLabel = selectedLanguage === "ur" ? "Urdu" : "English";
 
     return (
       <>

@@ -66,7 +66,6 @@ export function SearchFilters({
           defaultValue={selectedLanguage}
           name="language"
         >
-          <option value="">All languages</option>
           <option value="en">English</option>
           <option value="ur">Urdu</option>
         </select>
