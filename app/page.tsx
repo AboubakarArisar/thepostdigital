@@ -7,6 +7,7 @@ import { LeadStory } from "@/components/LeadStory";
 import { MostRead } from "@/components/MostRead";
 import { NewsletterBox } from "@/components/NewsletterBox";
 import { SidebarLatest } from "@/components/SidebarLatest";
+import { getAdminSession } from "@/lib/auth";
 import { formatCategories, getPublishedArticles } from "@/lib/data";
 import type { Language } from "@/lib/types";
 
@@ -16,17 +17,16 @@ type HomeSearchParams = Promise<{
 
 const languageOptions: Array<{
   label: string;
-  shortLabel: string;
   value: Language;
   href: string;
 }> = [
-  { label: "English", shortLabel: "EN", value: "en", href: "/" },
-  { label: "Urdu", shortLabel: "UR", value: "ur", href: "/?language=ur" },
+  { label: "EN", value: "en", href: "/?language=en" },
+  { label: "UR", value: "ur", href: "/" },
 ];
 
 function normalizeLanguage(value: string | string[] | undefined) {
   const selected = Array.isArray(value) ? value[0] : value;
-  return selected === "ur" ? selected : "en";
+  return selected === "en" ? selected : "ur";
 }
 
 function LanguageSwitcher({
@@ -38,7 +38,7 @@ function LanguageSwitcher({
 }) {
   const selectedLabel =
     languageOptions.find((option) => option.value === selectedLanguage)?.label ??
-    "English";
+    "UR";
 
   return (
     <div className="mx-auto mt-5 w-full max-w-lg">
@@ -65,9 +65,6 @@ function LanguageSwitcher({
                   : "text-muted hover:bg-accent-soft hover:text-ink"
               }`}
             >
-              <span className="hidden text-[10px] font-black uppercase tracking-[0.14em] opacity-70 sm:inline">
-                {option.shortLabel}
-              </span>
               <span className="text-[11px] font-black uppercase tracking-[0.1em] sm:text-xs">
                 {option.label}
               </span>
@@ -93,6 +90,7 @@ export default async function Home({
 }: {
   searchParams: HomeSearchParams;
 }) {
+  const adminSession = await getAdminSession();
   const allPublished = await getPublishedArticles();
   const selectedLanguage = normalizeLanguage((await searchParams).language);
   const languageCounts = {
@@ -144,7 +142,7 @@ export default async function Home({
   }
 
   if (published.length === 0) {
-    const selectedLabel = selectedLanguage === "ur" ? "Urdu" : "English";
+    const selectedLabel = selectedLanguage === "ur" ? "UR" : "EN";
 
     return (
       <>
@@ -251,19 +249,23 @@ export default async function Home({
           </div>
         </section>
       </main>
-      <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 border-t border-rule bg-paper text-center text-[10px] font-black uppercase tracking-[0.12em] text-ink md:hidden">
+      <nav className={`fixed inset-x-0 bottom-0 z-10 grid border-t border-rule bg-paper text-center text-[10px] font-black uppercase tracking-[0.12em] text-ink md:hidden ${adminSession ? "grid-cols-4" : "grid-cols-2"}`}>
         <Link className="border-r border-rule py-3" href="/">
           Home
         </Link>
-        <Link className="border-r border-rule py-3" href="/search">
+        <Link className={adminSession ? "border-r border-rule py-3" : "py-3"} href="/search">
           Search
         </Link>
-        <Link className="border-r border-rule py-3" href="/admin">
-          Desk
-        </Link>
-        <Link className="py-3" href="/admin/editor">
-          Write
-        </Link>
+        {adminSession && (
+          <>
+            <Link className="border-r border-rule py-3" href="/admin">
+              Desk
+            </Link>
+            <Link className="py-3" href="/admin/editor">
+              Write
+            </Link>
+          </>
+        )}
       </nav>
       <Footer />
     </>

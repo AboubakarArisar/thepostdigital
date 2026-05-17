@@ -10,6 +10,7 @@ const statusClass = {
   pending_approval: "bg-accent-soft text-black",
   published: "bg-black text-white",
   scheduled: "bg-zinc-200 text-black",
+  archived: "bg-zinc-700 text-white",
 };
 
 export function ArticleTable({
@@ -56,6 +57,23 @@ export function ArticleTable({
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...article, status: "pending_approval" }),
+    });
+
+    if (response.ok) {
+      router.refresh();
+    }
+  }
+
+  async function archiveStory(article: Article) {
+    const confirmed = window.confirm(
+      `Archive "${article.title}"? It will only appear in the archive.`,
+    );
+    if (!confirmed) return;
+
+    const response = await fetch(`/api/articles/${article.slug}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...article, status: "archived" }),
     });
 
     if (response.ok) {
@@ -115,7 +133,11 @@ export function ArticleTable({
                   </Link>
                   <Link
                     className="cursor-pointer font-bold underline"
-                    href={`/article/${article.slug}`}
+                    href={
+                      article.status === "archived"
+                        ? `/archive/${article.slug}`
+                        : `/article/${article.slug}`
+                    }
                   >
                     View
                   </Link>
@@ -134,6 +156,15 @@ export function ArticleTable({
                         : "Approve"
                       : "Submit"}
                   </button>
+                  {article.status !== "archived" && (
+                    <button
+                      className="cursor-pointer font-bold underline"
+                      type="button"
+                      onClick={() => archiveStory(article)}
+                    >
+                      Archive
+                    </button>
+                  )}
                   <button
                     className="cursor-pointer font-bold underline"
                     type="button"

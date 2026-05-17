@@ -26,10 +26,8 @@ function isLanguage(value: string | undefined): value is Language {
 
 function isStatus(value: string | undefined): value is ArticleStatus {
   return (
-    value === "draft" ||
-    value === "pending_approval" ||
     value === "published" ||
-    value === "scheduled"
+    value === "archived"
   );
 }
 
@@ -114,12 +112,12 @@ export default async function SearchPage({
   const params = await searchParams;
   const selectedCategory = firstParam(params.category) ?? "";
   const selectedDate = firstParam(params.date) ?? "";
-  const selectedLanguage = firstParam(params.language) ?? "en";
+  const selectedLanguage = firstParam(params.language) ?? "ur";
   const selectedStatus = firstParam(params.status) ?? "published";
   const query = firstParam(params.q) ?? "";
   const sort = firstParam(params.sort) ?? "";
-  const language = isLanguage(selectedLanguage) ? selectedLanguage : "en";
-  const status = isStatus(selectedStatus) ? selectedStatus : "";
+  const language = isLanguage(selectedLanguage) ? selectedLanguage : "ur";
+  const status = isStatus(selectedStatus) ? selectedStatus : "published";
   const filteredArticles = articles
     .filter((article) => matchesQuery(article, query))
     .filter((article) => !selectedCategory || matchesCategory(article, selectedCategory))
@@ -186,9 +184,9 @@ export default async function SearchPage({
                 Archive
               </h2>
               <div className="mt-3 grid gap-2 text-sm font-bold">
-                <a href="/search?date=2026-05">May 2026</a>
-                <a href="/search?date=2026-04">April 2026</a>
-                <a href="/search?date=2026-03">March 2026</a>
+                <a href="/search?status=archived&date=2026-05">May 2026</a>
+                <a href="/search?status=archived&date=2026-04">April 2026</a>
+                <a href="/search?status=archived&date=2026-03">March 2026</a>
               </div>
             </section>
             <NewsletterBox />

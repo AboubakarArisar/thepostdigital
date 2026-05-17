@@ -80,7 +80,7 @@ async function transliterateAllRomanWords(value: string) {
 export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
   const router = useRouter();
   const isEditing = Boolean(article);
-  const [language, setLanguage] = useState<Language>(article?.language || "en");
+  const [language, setLanguage] = useState<Language>(article?.language || "ur");
   const [status, setStatus] = useState<ArticleStatus>(article?.status || "draft");
   const [contentType, setContentType] = useState<ArticleContentType>(
     article?.contentType || "news",
@@ -368,8 +368,14 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             type="file"
             accept="image/*,video/*"
             onChange={(event) => uploadMedia(event.target.files?.[0] ?? null)}
-            className="mt-3 text-sm"
+            className="sr-only"
           />
+          <label
+            htmlFor="featured-image"
+            className="mt-3 inline-flex cursor-pointer items-center justify-center border-2 border-black bg-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black"
+          >
+            Choose file
+          </label>
           <p className="mt-3 text-sm text-zinc-600">
             Upload images or videos to Cloudinary. Files over 100 MB are blocked
             before upload because the free plan cannot handle them reliably.
@@ -470,8 +476,8 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             onChange={(event) => setLanguage(event.target.value as Language)}
             className={inputClass}
           >
-            <option value="en">English</option>
-            <option value="ur">Urdu</option>
+            <option value="en">EN</option>
+            <option value="ur">UR</option>
           </select>
 
           <label className="mt-4 flex items-start gap-2 text-sm font-bold">
@@ -537,6 +543,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
               <option value="published">Published</option>
             )}
             <option value="scheduled">Scheduled</option>
+            <option value="archived">Archived</option>
           </select>
         </div>
 

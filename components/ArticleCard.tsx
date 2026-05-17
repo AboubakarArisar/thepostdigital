@@ -9,6 +9,11 @@ type ArticleCardProps = {
 };
 
 export function ArticleCard({ article, compact = false }: ArticleCardProps) {
+  const articleHref =
+    article.status === "archived"
+      ? `/archive/${article.slug}`
+      : `/article/${article.slug}`;
+
   return (
     <article
       lang={article.language}
@@ -17,7 +22,7 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
     >
       {!compact && (
         <Link
-          href={`/article/${article.slug}`}
+          href={articleHref}
           className="mb-3 block aspect-[4/3] overflow-hidden border border-soft-rule bg-elevated"
         >
           <ArticleImage article={article} />
@@ -34,7 +39,7 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
           compact ? "sm:text-lg" : "sm:text-xl"
         }`}
       >
-        <Link href={`/article/${article.slug}`} className="hover:underline">
+        <Link href={articleHref} className="hover:underline">
           {article.title}
         </Link>
       </h3>

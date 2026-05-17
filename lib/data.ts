@@ -279,6 +279,11 @@ export async function getPublishedArticleBySlug(slug: string) {
   return article?.status === "published" ? article : undefined;
 }
 
+export async function getArchivedArticleBySlug(slug: string) {
+  const article = await getArticleBySlug(slug);
+  return article?.status === "archived" ? article : undefined;
+}
+
 export async function getRelatedArticles(article: Article) {
   const published = await getPublishedArticles();
   const related = published

@@ -10,7 +10,13 @@ import type {
   Language,
 } from "@/lib/types";
 
-const statuses = new Set(["draft", "pending_approval", "published", "scheduled"]);
+const statuses = new Set([
+  "draft",
+  "pending_approval",
+  "published",
+  "scheduled",
+  "archived",
+]);
 const languages = new Set(["en", "ur"]);
 const contentTypes = new Set(["news", "editorial", "photo", "video"]);
 const mediaTypes = new Set(["image", "video"]);
@@ -111,10 +117,13 @@ export async function PUT(
     }
 
     revalidatePath("/");
+    revalidatePath("/archive");
     revalidatePath("/admin");
     revalidatePath("/search");
     revalidatePath(`/article/${slug}`);
     revalidatePath(`/article/${updated.slug}`);
+    revalidatePath(`/archive/${slug}`);
+    revalidatePath(`/archive/${updated.slug}`);
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -141,9 +150,11 @@ export async function DELETE(
   }
 
   revalidatePath("/");
+  revalidatePath("/archive");
   revalidatePath("/admin");
   revalidatePath("/search");
   revalidatePath(`/article/${slug}`);
+  revalidatePath(`/archive/${slug}`);
 
   return NextResponse.json({ ok: true });
 }

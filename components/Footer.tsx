@@ -3,13 +3,10 @@ import { categories } from "@/lib/data";
 import { SiteLogo } from "./SiteLogo";
 
 const footerLinks = [
-  "About",
-  "Contact",
-  "Advertise",
-  "Privacy",
-  "Terms",
-  "Corrections",
-  "Careers",
+  { label: "Home", href: "/" },
+  { label: "Latest", href: "/search" },
+  { label: "Archive", href: "/search?status=archived" },
+  { label: "About", href: "/about" },
 ];
 
 export function Footer() {
@@ -19,11 +16,11 @@ export function Footer() {
         <div className="scrollbar-none mx-auto flex max-w-7xl justify-center gap-7 overflow-x-auto px-4 text-[12px] uppercase tracking-[0.04em]">
           {footerLinks.map((link) => (
             <Link
-              href={link === "About" ? "/about" : "#"}
-              key={link}
+              href={link.href}
+              key={link.href}
               className="shrink-0 opacity-80 hover:opacity-100"
             >
-              {link}
+              {link.label}
             </Link>
           ))}
         </div>
@@ -40,7 +37,7 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="grid gap-8 border-b border-rule py-6 md:grid-cols-[1fr_1fr_1fr]">
+        <div className="grid gap-8 border-b border-rule py-6 md:grid-cols-[1fr_1fr]">
           <div>
             <h2 className="text-xs font-black uppercase tracking-[0.14em]">
               Sections
@@ -55,18 +52,6 @@ export function Footer() {
                   {category.name}
                 </Link>
               ))}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-xs font-black uppercase tracking-[0.14em]">
-              Network
-            </h2>
-            <div className="mt-3 grid gap-2 text-sm uppercase">
-              <a href="#">Epaper</a>
-              <a href="#">Live TV</a>
-              <a href="#">Post News Urdu</a>
-              <a href="#">Images</a>
             </div>
           </div>
 

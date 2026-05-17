@@ -66,8 +66,8 @@ export function SearchFilters({
           defaultValue={selectedLanguage}
           name="language"
         >
-          <option value="en">English</option>
-          <option value="ur">Urdu</option>
+          <option value="en">EN</option>
+          <option value="ur">UR</option>
         </select>
         <select
           aria-label="Date filter"
@@ -87,9 +87,7 @@ export function SearchFilters({
           name="status"
         >
           <option value="published">Published</option>
-          <option value="draft">Draft</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="">All statuses</option>
+          <option value="archived">Archived</option>
         </select>
       </div>
     </form>

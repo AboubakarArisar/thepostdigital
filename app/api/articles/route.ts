@@ -10,7 +10,13 @@ import type {
   Language,
 } from "@/lib/types";
 
-const statuses = new Set(["draft", "pending_approval", "published", "scheduled"]);
+const statuses = new Set([
+  "draft",
+  "pending_approval",
+  "published",
+  "scheduled",
+  "archived",
+]);
 const languages = new Set(["en", "ur"]);
 const contentTypes = new Set(["news", "editorial", "photo", "video"]);
 const mediaTypes = new Set(["image", "video"]);
@@ -89,9 +95,11 @@ export async function POST(request: Request) {
   });
 
   revalidatePath("/");
+  revalidatePath("/archive");
   revalidatePath("/admin");
   revalidatePath("/search");
   revalidatePath(`/article/${saved.slug}`);
+  revalidatePath(`/archive/${saved.slug}`);
 
   return NextResponse.json(saved, { status: 201 });
 }

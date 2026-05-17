@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { categories } from "@/lib/categories";
+import { getAdminSession } from "@/lib/auth";
 import { SiteLogo } from "./SiteLogo";
 import { ThemeToggle } from "./ThemeToggle";
 
 const alertLinks = ["Live updates", "Investigations"];
 
-export function Header() {
+export async function Header() {
+  const adminSession = await getAdminSession();
   const today = new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "2-digit",
@@ -16,22 +18,17 @@ export function Header() {
     <header className="border-b border-rule bg-paper">
       <div className="mx-auto max-w-7xl px-4">
         <div className="grid items-center gap-3 border-b border-soft-rule py-3 text-[11px] uppercase tracking-[0.1em] text-muted md:grid-cols-[1fr_auto_1fr]">
-          <div className="hidden gap-3 md:flex">
-            <Link href="/search" className="font-black text-ink hover:underline">
-              Sections
-            </Link>
-            <Link href="/search?sort=latest" className="hover:text-ink">
-              Latest
-            </Link>
-            <Link href="/about" className="hover:text-ink">
-              About
-            </Link>
-          </div>
+          <div className="hidden md:block" aria-hidden="true" />
           <p className="text-center">{today}</p>
           <div className="flex items-center justify-center gap-2 md:justify-end">
-            <Link href="/admin" className="font-black text-ink hover:underline sm:font-normal sm:text-muted sm:hover:text-ink sm:hover:no-underline">
-              Admin
-            </Link>
+            {adminSession && (
+              <Link
+                href="/admin"
+                className="border border-soft-rule px-2 py-1 text-[10px] font-black text-muted hover:border-rule hover:text-ink"
+              >
+                Admin
+              </Link>
+            )}
             <ThemeToggle />
           </div>
         </div>
@@ -45,10 +42,8 @@ export function Header() {
             <SiteLogo className="h-14 w-[min(82vw,25rem)] sm:h-16 sm:w-[30rem]" priority />
           </Link>
           <p className="mx-auto mt-2 max-w-2xl text-[11px] uppercase tracking-[0.12em] text-muted">
-            <Link href="/search" className="font-black text-ink hover:underline">
-              National Edition
-            </Link>{" "}
-            <span aria-hidden="true">|</span> Independent reporting for Pakistan and the world
+          
+            <span aria-hidden="true"></span> Independent reporting for the world
           </p>
         </div>
 
@@ -86,7 +81,7 @@ export function Header() {
           <Link href="/search?sort=popular" className="shrink-0 hover:underline">
             Popular
           </Link>
-          <Link href="/search" className="shrink-0 hover:underline">
+          <Link href="/search?status=archived" className="shrink-0 hover:underline">
             Archive
           </Link>
           <Link

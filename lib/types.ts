@@ -1,6 +1,11 @@
 export type Language = "en" | "ur";
 
-export type ArticleStatus = "draft" | "pending_approval" | "published" | "scheduled";
+export type ArticleStatus =
+  | "draft"
+  | "pending_approval"
+  | "published"
+  | "scheduled"
+  | "archived";
 export type ArticleContentType = "news" | "editorial" | "photo" | "video";
 export type ArticleMediaType = "image" | "video";
 export type AdminRole = "super_admin" | "admin";
