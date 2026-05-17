@@ -38,7 +38,7 @@ export default function AboutPage() {
               <div className="relative aspect-[4/5] overflow-hidden bg-soft-rule sm:aspect-[5/4] lg:aspect-auto lg:h-full lg:min-h-[34rem]">
                 <Image
                   src="/ceo.jpg"
-                  alt="Abuzar Ghafari, CEO of The Post Digital"
+                  alt="Abuzar Ghaffari, CEO of The Post Digital"
                   fill
                   sizes="(min-width: 1024px) 28rem, 100vw"
                   className="object-cover object-top"
@@ -53,21 +53,31 @@ export default function AboutPage() {
                   Founder and CEO / The Post Digital
                 </p>
                 <h1 className="font-serif-display mt-3 text-5xl font-black leading-[0.95] text-ink sm:text-6xl lg:text-7xl">
-                  Abuzar Ghafari
+                  Abuzar Ghaffari
                 </h1>
                 <p className="mt-4 max-w-3xl font-serif-display text-3xl font-black leading-tight text-ink sm:text-4xl">
                   Independent journalism with a clear public purpose.
                 </p>
                 <div className="mt-5 max-w-3xl space-y-4 text-base leading-7 text-muted">
                   <p>
-                    Abuzar Ghafari leads The Post Digital with a focus on
-                    public-interest reporting, responsible publishing, and a
-                    stronger digital reading experience.
+                    Abuzar Ghaffari is a professional journalist holding a
+                    Master&apos;s degree in Journalism. Before entering the
+                    field of media, he served in multinational companies and
+                    banking institutions, gaining extensive professional
+                    experience in corporate sectors.
                   </p>
                   <p>
-                    The newsroom is built for disciplined reporting: clear
-                    sourcing, thoughtful editing, and coverage that respects the
-                    reader&apos;s time.
+                    In 2017, he began his journalism career and worked with
+                    Sindhi, Urdu, and English newspapers, where he also
+                    performed his duties as a Bureau Chief. With a strong
+                    commitment to credible and balanced journalism, he
+                    established The Post Digital in 2024/25 as a platform
+                    focused on independent and unbiased reporting.
+                  </p>
+                  <p>
+                    Abuzar Ghaffari is recognized for his professional
+                    approach, multilingual media expertise, and dedication to
+                    responsible journalism.
                   </p>
                 </div>
               </div>

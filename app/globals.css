@@ -63,6 +63,33 @@ img {
   display: block;
 }
 
+@keyframes recent-news-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.recent-news-marquee {
+  animation: recent-news-scroll 32s linear infinite;
+  width: max-content;
+}
+
+.recent-news-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recent-news-marquee {
+    animation: none;
+    overflow-x: auto;
+    width: auto;
+  }
+}
+
 html.dark .site-logo-image[data-tone="dark"] {
   filter: invert(1) brightness(1.7);
   opacity: 0.96;
