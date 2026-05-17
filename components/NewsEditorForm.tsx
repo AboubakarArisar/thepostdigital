@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deskCategories, formatCategories } from "@/lib/categories";
 import type {
@@ -42,6 +42,32 @@ const punctuationTriggerKeys = new Set([
 
 const trailingRomanToken = /([A-Za-z][A-Za-z'-]*)([\s.,!?;:،۔؟]*)$/;
 
+const placeholders: Record<
+  Language,
+  {
+    title: string;
+    excerpt: string;
+    body: string;
+    seoTitle: string;
+    seoExcerpt: string;
+  }
+> = {
+  en: {
+    title: "Story headline",
+    excerpt: "Short summary",
+    body: "Write the article body here",
+    seoTitle: "Story headline preview",
+    seoExcerpt: "Search result excerpt preview for the selected language.",
+  },
+  ur: {
+    title: "خبر کی سرخی",
+    excerpt: "مختصر خلاصہ",
+    body: "مضمون کا متن یہاں لکھیں",
+    seoTitle: "خبر کی سرخی کا پیش منظر",
+    seoExcerpt: "منتخب زبان کے لیے تلاش کا مختصر پیش منظر۔",
+  },
+};
+
 async function transliterateText(text: string) {
   const response = await fetch("/api/google-input-tools", {
     method: "POST",
@@ -79,6 +105,7 @@ async function transliterateAllRomanWords(value: string) {
 
 export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
   const router = useRouter();
+  const saveInFlight = useRef(false);
   const isEditing = Boolean(article);
   const [language, setLanguage] = useState<Language>(article?.language || "ur");
   const [status, setStatus] = useState<ArticleStatus>(article?.status || "draft");
@@ -98,7 +125,6 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
   );
   const [author, setAuthor] = useState(article?.author || "News Desk");
   const [tags, setTags] = useState(article?.tags.join(", ") || "");
-  const [imageCaption, setImageCaption] = useState(article?.imageCaption || "");
   const [fields, setFields] = useState<TextFields>({
     title: article?.title || "",
     excerpt: article?.excerpt || "",
@@ -127,6 +153,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
 
   const inputClass =
     "w-full border border-black bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-black";
+  const copy = placeholders[language];
 
   function updateField(name: TextFieldName, value: string) {
     setFields((current) => ({ ...current, [name]: value }));
@@ -192,16 +219,20 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
   }
 
   async function saveStory(nextStatus = status) {
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
     setSaveError("");
     setSaveMessage("");
 
     if (!fields.title.trim() || !fields.excerpt.trim() || !fields.body.trim()) {
       setSaveError("Title, excerpt, and body are required before saving.");
+      saveInFlight.current = false;
       return;
     }
 
     if ((contentType === "photo" || contentType === "video") && !uploadedMedia?.url) {
       setSaveError("Upload the photo or video before saving this media story.");
+      saveInFlight.current = false;
       return;
     }
 
@@ -212,7 +243,10 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
     const fallbackImage =
       "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1400&q=80";
     const mediaUrl = uploadedMedia?.url || article?.mediaUrl || fallbackImage;
-    const endpoint = isEditing ? `/api/articles/${article?.slug}` : "/api/articles";
+    const endpoint =
+      isEditing && article?.slug
+        ? `/api/articles/${encodeURIComponent(article.slug)}`
+        : "/api/articles";
 
     try {
       const response = await fetch(endpoint, {
@@ -238,7 +272,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             mediaType === "image" ? mediaUrl : article?.featuredImage || fallbackImage,
           mediaUrl,
           mediaType,
-          imageCaption: imageCaption.trim() || fields.title.trim(),
+          imageCaption: fields.excerpt.trim() || fields.title.trim(),
           status: nextStatus,
           publishedAt:
             isEditing && article?.publishedAt
@@ -264,11 +298,12 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
       setStatus(result.status || nextStatus);
       setSaveMessage("Saved.");
       router.refresh();
-      router.push(result.status === "published" ? `/article/${result.slug}` : "/admin");
+      router.push("/admin");
     } catch {
       setSaveError("Story could not be saved. Check the server and try again.");
     } finally {
       setIsSaving(false);
+      saveInFlight.current = false;
     }
   }
 
@@ -315,7 +350,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             }
             {...writingMode}
             className={`${inputClass} ${writingMode.className} font-serif-display text-3xl font-black`}
-            placeholder={language === "ur" ? "khabar ki surkhi" : "Story headline"}
+            placeholder={copy.title}
           />
         </div>
 
@@ -333,7 +368,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             }
             {...writingMode}
             className={`${inputClass} ${writingMode.className}`}
-            placeholder={language === "ur" ? "mukhtasar khulasa" : "Short summary"}
+            placeholder={copy.excerpt}
           />
         </div>
 
@@ -351,11 +386,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             }
             {...writingMode}
             className={`${inputClass} ${writingMode.className} leading-8`}
-            placeholder={
-              language === "ur"
-                ? "mazmoon ka matn yahan likhein"
-                : "Write the article body here"
-            }
+            placeholder={copy.body}
           />
         </div>
 
@@ -516,18 +547,6 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             placeholder="News Desk"
           />
 
-          <label htmlFor="caption" className="editor-label mt-4">
-            Media caption
-          </label>
-          <textarea
-            id="caption"
-            rows={3}
-            value={imageCaption}
-            onChange={(event) => setImageCaption(event.target.value)}
-            className={inputClass}
-            placeholder="Caption for the uploaded image or video"
-          />
-
           <label htmlFor="status" className="editor-label mt-4">
             Status
           </label>
@@ -588,11 +607,10 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           <p className="editor-label">SEO preview</p>
           <div {...writingMode} className={`${writingMode.className} mt-3`}>
             <p className="font-serif-display text-xl font-black">
-              {fields.title || "Story headline preview"}
+              {fields.title || copy.seoTitle}
             </p>
             <p className="mt-2 text-sm text-zinc-700">
-              {fields.excerpt ||
-                "Search result excerpt preview for the selected language."}
+              {fields.excerpt || copy.seoExcerpt}
             </p>
           </div>
         </section>

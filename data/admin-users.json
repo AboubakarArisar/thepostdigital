@@ -8,15 +8,5 @@
     "createdAt": "2026-05-09T10:44:29.150Z",
     "verifiedAt": "2026-05-09T10:44:29.150Z",
     "verifiedBy": "admin@post.local"
-  },
-  {
-    "email": "aboubakar.dev@gmail.com",
-    "name": "Abou Bakar",
-    "passwordHash": "aa2310db867fe5a6bf6418b5ad3faf9b:cb77d14c035a8bb71b9db0eac4d3aecb88860d064d8a079decc19ef94d338941fb1bcd46848bc4e9034dc9a57ca05f4e9f62e3eee47b058011e3dfe77f674725",
-    "role": "admin",
-    "status": "approved",
-    "createdAt": "2026-05-09T10:45:10.579Z",
-    "verifiedAt": "2026-05-09T10:45:24.819Z",
-    "verifiedBy": "admin@post.local"
   }
 ]

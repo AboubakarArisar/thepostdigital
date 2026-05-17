@@ -13,12 +13,22 @@ const statusClass = {
   archived: "bg-zinc-700 text-white",
 };
 
+function articleApiRoute(slug: string) {
+  return `/api/articles/${encodeURIComponent(slug)}`;
+}
+
+function articleCollectionApiRoute(slug: string) {
+  return `/api/articles?slug=${encodeURIComponent(slug)}`;
+}
+
 export function ArticleTable({
   articles,
   currentRole,
+  title = "Recent editorial",
 }: {
   articles: Article[];
   currentRole: AdminRole;
+  title?: string;
 }) {
   const router = useRouter();
 
@@ -28,7 +38,9 @@ export function ArticleTable({
     );
     if (!confirmed) return;
 
-    const response = await fetch(`/api/articles/${slug}`, { method: "DELETE" });
+    const response = await fetch(articleCollectionApiRoute(slug), {
+      method: "DELETE",
+    });
     if (response.ok) {
       router.refresh();
     }
@@ -41,7 +53,7 @@ export function ArticleTable({
     );
     if (!confirmed) return;
 
-    const response = await fetch(`/api/articles/${article.slug}`, {
+    const response = await fetch(articleApiRoute(article.slug), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...article, status: nextStatus }),
@@ -53,7 +65,7 @@ export function ArticleTable({
   }
 
   async function submitForApproval(article: Article) {
-    const response = await fetch(`/api/articles/${article.slug}`, {
+    const response = await fetch(articleApiRoute(article.slug), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...article, status: "pending_approval" }),
@@ -70,7 +82,7 @@ export function ArticleTable({
     );
     if (!confirmed) return;
 
-    const response = await fetch(`/api/articles/${article.slug}`, {
+    const response = await fetch(articleApiRoute(article.slug), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...article, status: "archived" }),
@@ -85,7 +97,7 @@ export function ArticleTable({
     <div className="overflow-x-auto border-2 border-black">
       <table className="w-full min-w-[760px] border-collapse text-left text-sm">
         <caption className="border-b-2 border-black bg-black px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-white">
-          Recent editorial
+          {title}
         </caption>
         <thead>
           <tr className="border-b-2 border-black text-xs uppercase tracking-[0.14em]">
@@ -103,8 +115,7 @@ export function ArticleTable({
           {articles.length === 0 ? (
             <tr>
               <td className="p-6 text-center font-bold text-zinc-600" colSpan={8}>
-                No stories yet. Create a news, editorial, photo, or video story
-                from the editor.
+                No stories found here.
               </td>
             </tr>
           ) : (
@@ -130,16 +141,6 @@ export function ArticleTable({
                     href={`/admin/editor?slug=${encodeURIComponent(article.slug)}`}
                   >
                     Edit
-                  </Link>
-                  <Link
-                    className="cursor-pointer font-bold underline"
-                    href={
-                      article.status === "archived"
-                        ? `/archive/${article.slug}`
-                        : `/article/${article.slug}`
-                    }
-                  >
-                    View
                   </Link>
                   <button
                     className="cursor-pointer font-bold underline"

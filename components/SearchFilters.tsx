@@ -7,7 +7,6 @@ type SearchFiltersProps = {
   selectedCategory: string;
   selectedLanguage: string;
   selectedDate: string;
-  selectedStatus: string;
   query: string;
 };
 
@@ -16,7 +15,6 @@ export function SearchFilters({
   selectedCategory,
   selectedLanguage,
   selectedDate,
-  selectedStatus,
   query,
 }: SearchFiltersProps) {
   return (
@@ -46,7 +44,7 @@ export function SearchFilters({
           Search
         </button>
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-4">
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
         <select
           aria-label="Category filter"
           className="border border-rule bg-paper px-3 py-2 text-ink"
@@ -79,15 +77,6 @@ export function SearchFilters({
           <option value="week">This week</option>
           <option value="month">This month</option>
           <option value="year">This year</option>
-        </select>
-        <select
-          aria-label="Status filter"
-          className="border border-rule bg-paper px-3 py-2 text-ink"
-          defaultValue={selectedStatus}
-          name="status"
-        >
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
         </select>
       </div>
     </form>

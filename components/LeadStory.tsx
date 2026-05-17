@@ -11,7 +11,7 @@ export function LeadStory({ article }: { article: Article }) {
       className={`border-b border-rule pb-5 ${articleTextClass(article)}`}
     >
       <Link
-        href={`/article/${article.slug}`}
+        href={`/article/${encodeURIComponent(article.slug)}`}
         className="block aspect-[16/10] overflow-hidden border border-soft-rule bg-elevated"
       >
         <ArticleImage article={article} priority />
@@ -22,7 +22,10 @@ export function LeadStory({ article }: { article: Article }) {
             Lead Story / {article.contentType} / {article.category}
           </p>
           <h1 className="font-serif-display text-3xl font-black leading-tight text-ink sm:text-4xl">
-            <Link href={`/article/${article.slug}`} className="hover:underline">
+            <Link
+              href={`/article/${encodeURIComponent(article.slug)}`}
+              className="hover:underline"
+            >
               {article.title}
             </Link>
           </h1>

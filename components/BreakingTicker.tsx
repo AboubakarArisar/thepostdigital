@@ -15,7 +15,7 @@ export function BreakingTicker({ articles }: { articles: Article[] }) {
           {articles.map((article) => (
             <Link
               key={article.slug}
-              href={`/article/${article.slug}`}
+              href={`/article/${encodeURIComponent(article.slug)}`}
               className="shrink-0 font-semibold hover:underline"
             >
               {article.title}

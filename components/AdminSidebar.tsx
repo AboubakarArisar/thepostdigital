@@ -5,8 +5,7 @@ import { SiteLogo } from "./SiteLogo";
 const adminLinks = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/editor", label: "New story" },
-  { href: "/search?status=archived", label: "Archive" },
-  { href: "/", label: "Public site" },
+  { href: "/admin/archive", label: "Archive" },
 ];
 
 export function AdminSidebar() {

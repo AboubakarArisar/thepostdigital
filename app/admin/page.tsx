@@ -3,7 +3,7 @@ import { AdminUsersTable } from "@/components/AdminUsersTable";
 import { ArticleTable } from "@/components/ArticleTable";
 import { StatsCard } from "@/components/StatsCard";
 import { getAdminSession, getAdminUsers, isSuperAdmin } from "@/lib/auth";
-import { getArticles, getPublishedArticles } from "@/lib/data";
+import { getArticles } from "@/lib/data";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -12,12 +12,14 @@ export default async function AdminDashboard() {
   if (!session) redirect("/admin/login");
 
   const articles = await getArticles();
-  const published = await getPublishedArticles();
-  const drafts = articles.filter((article) => article.status === "draft").length;
-  const pendingApproval = articles.filter(
+  const liveArticles = articles.filter((article) => article.status !== "archived");
+  const archivedArticles = articles.filter((article) => article.status === "archived");
+  const published = liveArticles.filter((article) => article.status === "published");
+  const drafts = liveArticles.filter((article) => article.status === "draft").length;
+  const pendingApproval = liveArticles.filter(
     (article) => article.status === "pending_approval",
   ).length;
-  const mediaStories = articles.filter(
+  const mediaStories = liveArticles.filter(
     (article) => article.mediaType === "image" || article.mediaType === "video",
   ).length;
   const adminUsers = isSuperAdmin(session) ? await getAdminUsers() : [];
@@ -37,8 +39,7 @@ export default async function AdminDashboard() {
                 Dashboard
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-700">
-                Review stories, publish approved work, and manage access
-                requests from one place.
+                Review stories, publish approved work, and manage access requests from one place.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -48,20 +49,14 @@ export default async function AdminDashboard() {
               >
                 New story
               </Link>
-              <Link
-                href="/"
-                className="border-2 border-black px-4 py-3 text-xs font-black uppercase tracking-[0.14em] hover:bg-black hover:text-white"
-              >
-                View site
-              </Link>
             </div>
           </div>
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <StatsCard
             label="Published"
             value={String(published.length)}
-            detail="Live stories in the public archive"
+            detail="Live stories visible on the public site"
           />
           <StatsCard
             label="Drafts"
@@ -85,9 +80,18 @@ export default async function AdminDashboard() {
               detail="Admin access requests waiting for review"
             />
           )}
+          <StatsCard
+            label="Archived"
+            value={String(archivedArticles.length)}
+            detail="Hidden stories kept in the admin archive"
+          />
         </div>
         <div className="mt-6">
-          <ArticleTable articles={articles} currentRole={session.role} />
+          <ArticleTable
+            articles={liveArticles}
+            currentRole={session.role}
+            title="Recent editorial"
+          />
         </div>
         {isSuperAdmin(session) && (
           <div className="mt-6 scroll-mt-6" id="access-requests">

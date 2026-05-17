@@ -1,11 +1,10 @@
 import { ArticleCard } from "@/components/ArticleCard";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { NewsletterBox } from "@/components/NewsletterBox";
 import { SearchFilters } from "@/components/SearchFilters";
 import { categories } from "@/lib/categories";
 import { getArticles } from "@/lib/data";
-import type { Article, ArticleStatus, Language } from "@/lib/types";
+import type { Article, Language } from "@/lib/types";
 
 type SearchParams = Promise<{
   category?: string | string[] | undefined;
@@ -13,7 +12,6 @@ type SearchParams = Promise<{
   language?: string | string[] | undefined;
   q?: string | string[] | undefined;
   sort?: string | string[] | undefined;
-  status?: string | string[] | undefined;
 }>;
 
 function firstParam(value: string | string[] | undefined) {
@@ -22,13 +20,6 @@ function firstParam(value: string | string[] | undefined) {
 
 function isLanguage(value: string | undefined): value is Language {
   return value === "en" || value === "ur";
-}
-
-function isStatus(value: string | undefined): value is ArticleStatus {
-  return (
-    value === "published" ||
-    value === "archived"
-  );
 }
 
 function matchesCategory(article: Article, categorySlug: string) {
@@ -113,16 +104,14 @@ export default async function SearchPage({
   const selectedCategory = firstParam(params.category) ?? "";
   const selectedDate = firstParam(params.date) ?? "";
   const selectedLanguage = firstParam(params.language) ?? "ur";
-  const selectedStatus = firstParam(params.status) ?? "published";
   const query = firstParam(params.q) ?? "";
   const sort = firstParam(params.sort) ?? "";
   const language = isLanguage(selectedLanguage) ? selectedLanguage : "ur";
-  const status = isStatus(selectedStatus) ? selectedStatus : "published";
   const filteredArticles = articles
     .filter((article) => matchesQuery(article, query))
     .filter((article) => !selectedCategory || matchesCategory(article, selectedCategory))
     .filter((article) => !language || article.language === language)
-    .filter((article) => !status || article.status === status)
+    .filter((article) => article.status === "published")
     .filter((article) => matchesDate(article, selectedDate))
     .sort((a, b) => {
       if (sort === "popular") return b.views - a.views;
@@ -131,10 +120,13 @@ export default async function SearchPage({
 
   return (
     <>
-      <Header />
+      <Header language={language} />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
-        <h1 className="font-serif-display text-4xl font-black leading-none text-ink sm:text-5xl">
-          Search the archive
+        <h1
+          dir={language === "ur" ? "rtl" : "ltr"}
+          className={`text-4xl font-black leading-none text-ink sm:text-5xl ${language === "ur" ? "font-urdu text-right" : ""}`}
+        >
+          {language === "ur" ? "تلاش" : "Search"}
         </h1>
         <SearchFilters
           categories={categories}
@@ -142,11 +134,10 @@ export default async function SearchPage({
           selectedCategory={selectedCategory}
           selectedDate={selectedDate}
           selectedLanguage={language}
-          selectedStatus={status}
         />
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_18rem]">
-          <section className="space-y-6">
+        <div className="mt-8">
+          <section>
             <p className="border-b border-soft-rule pb-3 text-xs font-black uppercase tracking-[0.16em] text-muted">
               {filteredArticles.length} result{filteredArticles.length === 1 ? "" : "s"}
             </p>
@@ -158,39 +149,16 @@ export default async function SearchPage({
                 </p>
               </div>
             ) : (
-              filteredArticles.map((article) => (
-                <ArticleCard
-                  article={article}
-                  key={`${article.slug}-${article.publishedAt}`}
-                />
-              ))
-            )}
-          </section>
-          <aside className="space-y-6">
-            <section className="border border-rule bg-elevated p-4">
-              <h2 className="text-sm font-black uppercase tracking-[0.16em] text-ink">
-                Categories
-              </h2>
-              <div className="mt-3 grid gap-2 text-sm font-bold">
-                {categories.map((category) => (
-                  <a href={`/search?category=${category.slug}`} key={category.slug}>
-                    {category.name}
-                  </a>
+              <div className="mt-6 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+                {filteredArticles.map((article) => (
+                  <ArticleCard
+                    article={article}
+                    key={`${article.slug}-${article.publishedAt}`}
+                  />
                 ))}
               </div>
-            </section>
-            <section className="border-t border-rule pt-3">
-              <h2 className="text-sm font-black uppercase tracking-[0.16em] text-ink">
-                Archive
-              </h2>
-              <div className="mt-3 grid gap-2 text-sm font-bold">
-                <a href="/search?status=archived&date=2026-05">May 2026</a>
-                <a href="/search?status=archived&date=2026-04">April 2026</a>
-                <a href="/search?status=archived&date=2026-03">March 2026</a>
-              </div>
-            </section>
-            <NewsletterBox />
-          </aside>
+            )}
+          </section>
         </div>
       </main>
       <Footer />

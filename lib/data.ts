@@ -211,6 +211,16 @@ async function writeArticles(articles: Article[]) {
   await writeFile(storePath, JSON.stringify(articles, null, 2), "utf8");
 }
 
+function normalizeSlug(value: string) {
+  return (
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || `story-${Date.now()}`
+  );
+}
+
 export async function getArticles() {
   try {
     const contents = await readFile(storePath, "utf8");
@@ -223,12 +233,26 @@ export async function getArticles() {
 
 export async function saveArticle(article: Article) {
   const articles = await getArticles();
+  const matchingArticle = articles.find(
+    (item) =>
+      item.title.trim() === article.title.trim() &&
+      item.excerpt.trim() === article.excerpt.trim() &&
+      item.body.join("\n\n").trim() === article.body.join("\n\n").trim() &&
+      item.language === article.language &&
+      item.createdBy === article.createdBy,
+  );
+
+  if (matchingArticle) {
+    return matchingArticle;
+  }
+
   const existingSlugs = new Set(articles.map((item) => item.slug));
-  let slug = article.slug;
+  const baseSlug = normalizeSlug(article.slug || article.title);
+  let slug = baseSlug;
   let counter = 2;
 
   while (existingSlugs.has(slug)) {
-    slug = `${article.slug}-${counter}`;
+    slug = `${baseSlug}-${counter}`;
     counter += 1;
   }
 
@@ -243,7 +267,7 @@ export async function updateArticle(slug: string, article: Article) {
 
   if (index === -1) return null;
 
-  const nextSlug = article.slug || slug;
+  const nextSlug = normalizeSlug(article.slug || slug);
   const duplicateSlug = articles.some(
     (item) => item.slug === nextSlug && item.slug !== slug,
   );
@@ -277,11 +301,6 @@ export async function getArticleBySlug(slug: string) {
 export async function getPublishedArticleBySlug(slug: string) {
   const article = await getArticleBySlug(slug);
   return article?.status === "published" ? article : undefined;
-}
-
-export async function getArchivedArticleBySlug(slug: string) {
-  const article = await getArticleBySlug(slug);
-  return article?.status === "archived" ? article : undefined;
 }
 
 export async function getRelatedArticles(article: Article) {

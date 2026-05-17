@@ -19,7 +19,7 @@ export function ArticleImage({
         poster={article.featuredImage}
         controls
         preload="metadata"
-        className={`h-full w-full object-cover grayscale ${className}`}
+        className={`h-full w-full object-cover ${className}`}
       />
     );
   }
@@ -33,7 +33,7 @@ export function ArticleImage({
       unoptimized
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : "auto"}
-      className={`h-full w-full object-cover grayscale ${className}`}
+      className={`h-full w-full object-cover ${className}`}
     />
   );
 }

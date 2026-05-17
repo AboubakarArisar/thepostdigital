@@ -9,41 +9,35 @@ type ArticleCardProps = {
 };
 
 export function ArticleCard({ article, compact = false }: ArticleCardProps) {
-  const articleHref =
-    article.status === "archived"
-      ? `/archive/${article.slug}`
-      : `/article/${article.slug}`;
+  const articleHref = `/article/${encodeURIComponent(article.slug)}`;
 
   return (
     <article
       lang={article.language}
       dir={directionFor(article.language)}
-      className={`border-b border-soft-rule pb-4 ${articleTextClass(article)}`}
+      className={`border-b border-soft-rule pb-5 ${articleTextClass(article)}`}
     >
       {!compact && (
         <Link
           href={articleHref}
-          className="mb-3 block aspect-[4/3] overflow-hidden border border-soft-rule bg-elevated"
+          className="mb-3 block aspect-[16/10] overflow-hidden bg-elevated"
         >
           <ArticleImage article={article} />
         </Link>
       )}
-      <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-black uppercase tracking-[0.14em] text-muted">
-        <span className="text-accent">
-          {article.contentType} / {article.category}
-        </span>
-        <span>{formatDate(article.publishedAt)}</span>
-      </div>
       <h3
-        className={`font-serif-display text-xl font-black leading-tight text-ink ${
-          compact ? "sm:text-lg" : "sm:text-xl"
+        className={`font-black leading-snug text-ink ${
+          compact ? "text-lg" : "text-xl"
         }`}
       >
         <Link href={articleHref} className="hover:underline">
           {article.title}
         </Link>
       </h3>
-      <p className="mt-2 text-[13px] leading-6 text-muted">{article.excerpt}</p>
+      {!compact && (
+        <p className="mt-2 text-sm leading-6 text-muted">{article.excerpt}</p>
+      )}
+      <p className="mt-2 text-sm text-muted">{formatDate(article.publishedAt)}</p>
     </article>
   );
 }

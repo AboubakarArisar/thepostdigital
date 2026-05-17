@@ -30,7 +30,7 @@ const coverage = [
 export default function AboutPage() {
   return (
     <>
-      <Header />
+      <Header language="en" />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8">
         <section className="border-b-2 border-rule pb-8 sm:pb-10">
           <article className="grid gap-6 lg:grid-cols-[28rem_minmax(0,1fr)] lg:items-stretch">

@@ -4,9 +4,9 @@ import { SiteLogo } from "./SiteLogo";
 
 const footerLinks = [
   { label: "Home", href: "/" },
-  { label: "Latest", href: "/search" },
-  { label: "Archive", href: "/search?status=archived" },
+  { label: "Search", href: "/search" },
   { label: "About", href: "/about" },
+  { label: "Login", href: "/admin/login" },
 ];
 
 export function Footer() {

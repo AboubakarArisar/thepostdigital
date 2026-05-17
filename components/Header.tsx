@@ -1,26 +1,28 @@
 import Link from "next/link";
-import { categories } from "@/lib/categories";
 import { getAdminSession } from "@/lib/auth";
+import { categories } from "@/lib/categories";
+import type { Language } from "@/lib/types";
 import { SiteLogo } from "./SiteLogo";
 import { ThemeToggle } from "./ThemeToggle";
 
-const alertLinks = ["Live updates", "Investigations"];
+const labels: Record<Language, { home: string; search: string }> = {
+  en: { home: "Home", search: "Search" },
+  ur: { home: "صفحہ اول", search: "تلاش" },
+};
 
-export async function Header() {
+export async function Header({ language = "en" }: { language?: Language }) {
   const adminSession = await getAdminSession();
-  const today = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  }).format(new Date());
+  const copy = labels[language];
 
   return (
-    <header className="border-b border-rule bg-paper">
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="grid items-center gap-3 border-b border-soft-rule py-3 text-[11px] uppercase tracking-[0.1em] text-muted md:grid-cols-[1fr_auto_1fr]">
-          <div className="hidden md:block" aria-hidden="true" />
-          <p className="text-center">{today}</p>
-          <div className="flex items-center justify-center gap-2 md:justify-end">
+    <header className="bg-paper">
+      <div className="mx-auto max-w-7xl px-4 py-5">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <div aria-hidden="true" />
+          <Link href="/" aria-label="The Post Digital home" className="block w-fit">
+            <SiteLogo className="h-12 w-[min(70vw,20rem)] sm:h-14 sm:w-[24rem]" priority />
+          </Link>
+          <div className="flex items-center justify-end gap-2">
             {adminSession && (
               <Link
                 href="/admin"
@@ -32,69 +34,44 @@ export async function Header() {
             <ThemeToggle />
           </div>
         </div>
+      </div>
 
-        <div className="bg-paper py-4 text-center sm:py-5">
-          <Link
-            href="/"
-            aria-label="The Post Digital home"
-            className="mx-auto block w-fit"
-          >
-            <SiteLogo className="h-14 w-[min(82vw,25rem)] sm:h-16 sm:w-[30rem]" priority />
-          </Link>
-          <p className="mx-auto mt-2 max-w-2xl text-[11px] uppercase tracking-[0.12em] text-muted">
-          
-            <span aria-hidden="true"></span> Independent reporting for the world
+      <div className="bg-accent text-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-3">
+          <p className="text-4xl font-black leading-none">
+            Breaking News
           </p>
         </div>
+      </div>
 
-        <nav
-          aria-label="Primary"
-          className="scrollbar-none flex items-center gap-5 overflow-x-auto border-y border-rule bg-paper py-2.5 text-[12px] font-bold text-ink"
-        >
-          <Link href="/" className="shrink-0 hover:underline">
-            Home
+      <nav aria-label="Primary" className="border-b border-soft-rule bg-elevated">
+        <div className="scrollbar-none mx-auto flex max-w-7xl items-center justify-center gap-4 overflow-x-auto px-4 py-3 text-sm font-bold text-ink">
+          <Link
+            href={language === "en" ? "/?language=en" : "/"}
+            className="shrink-0 hover:text-accent"
+          >
+            {copy.home}
           </Link>
-          <Link href="/search" className="shrink-0 hover:underline">
-            Latest
+          <Link
+            href={language === "en" ? "/search?language=en" : "/search"}
+            className="shrink-0 hover:text-accent"
+          >
+            {copy.search}
           </Link>
-          <Link href="/about" className="shrink-0 hover:underline">
-            About
-          </Link>
-          {alertLinks.map((label) => (
-            <Link
-              href={`/search?q=${encodeURIComponent(label)}`}
-              key={label}
-              className="shrink-0 font-black text-accent hover:underline"
-            >
-              {label}
-            </Link>
-          ))}
           {categories.map((category) => (
             <Link
-              href={`/search?category=${category.slug}`}
+              href={`/search?category=${category.slug}${language === "en" ? "&language=en" : ""}`}
               key={category.slug}
-              className="shrink-0 hover:underline"
+              className="shrink-0 hover:text-accent"
             >
               {category.name === "Technology" ? "Tech" : category.name}
             </Link>
           ))}
-          <Link href="/search?sort=popular" className="shrink-0 hover:underline">
-            Popular
+          <Link href="/about" className="shrink-0 hover:text-accent">
+            About
           </Link>
-          <Link href="/search?status=archived" className="shrink-0 hover:underline">
-            Archive
-          </Link>
-          <Link
-            href="/search"
-            className="ml-auto flex shrink-0 items-center gap-2 text-muted hover:text-ink"
-          >
-            <span aria-hidden="true" className="text-xl leading-none">
-              &#9906;
-            </span>
-            Search
-          </Link>
-        </nav>
-      </div>
+        </div>
+      </nav>
     </header>
   );
 }

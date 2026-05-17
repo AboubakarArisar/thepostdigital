@@ -117,13 +117,10 @@ export async function PUT(
     }
 
     revalidatePath("/");
-    revalidatePath("/archive");
     revalidatePath("/admin");
     revalidatePath("/search");
-    revalidatePath(`/article/${slug}`);
-    revalidatePath(`/article/${updated.slug}`);
-    revalidatePath(`/archive/${slug}`);
-    revalidatePath(`/archive/${updated.slug}`);
+    revalidatePath(`/article/${encodeURIComponent(slug)}`);
+    revalidatePath(`/article/${encodeURIComponent(updated.slug)}`);
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -150,11 +147,9 @@ export async function DELETE(
   }
 
   revalidatePath("/");
-  revalidatePath("/archive");
   revalidatePath("/admin");
   revalidatePath("/search");
-  revalidatePath(`/article/${slug}`);
-  revalidatePath(`/archive/${slug}`);
+  revalidatePath(`/article/${encodeURIComponent(slug)}`);
 
   return NextResponse.json({ ok: true });
 }

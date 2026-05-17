@@ -17,7 +17,7 @@ export function SidebarLatest({ articles }: { articles: Article[] }) {
             className={`p-3 ${article.language === "ur" ? "font-urdu text-right" : ""}`}
           >
             <Link
-              href={`/article/${article.slug}`}
+              href={`/article/${encodeURIComponent(article.slug)}`}
               className="font-serif-display text-base font-black leading-tight text-ink hover:underline"
             >
               {article.title}

@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getAdminSession, isSuperAdmin } from "@/lib/auth";
-import { getArticles, saveArticle } from "@/lib/data";
+import { deleteArticle, getArticles, saveArticle } from "@/lib/data";
 import type {
   Article,
   ArticleContentType,
@@ -95,11 +95,34 @@ export async function POST(request: Request) {
   });
 
   revalidatePath("/");
-  revalidatePath("/archive");
   revalidatePath("/admin");
   revalidatePath("/search");
-  revalidatePath(`/article/${saved.slug}`);
-  revalidatePath(`/archive/${saved.slug}`);
+  revalidatePath(`/article/${encodeURIComponent(saved.slug)}`);
 
   return NextResponse.json(saved, { status: 201 });
+}
+
+export async function DELETE(request: Request) {
+  if (!(await getAdminSession())) {
+    return NextResponse.json({ error: "Admin login required." }, { status: 401 });
+  }
+
+  const slug = new URL(request.url).searchParams.get("slug");
+
+  if (!slug) {
+    return NextResponse.json({ error: "Story slug is required." }, { status: 400 });
+  }
+
+  const deleted = await deleteArticle(slug);
+
+  if (!deleted) {
+    return NextResponse.json({ error: "Story was not found." }, { status: 404 });
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/search");
+  revalidatePath(`/article/${encodeURIComponent(slug)}`);
+
+  return NextResponse.json({ ok: true });
 }

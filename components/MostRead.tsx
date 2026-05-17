@@ -15,7 +15,7 @@ export function MostRead({ articles }: { articles: Article[] }) {
             </span>
             <div lang={article.language} dir={article.language === "ur" ? "rtl" : "ltr"}>
               <Link
-                href={`/article/${article.slug}`}
+                href={`/article/${encodeURIComponent(article.slug)}`}
                 className={`font-bold leading-snug hover:underline ${
                   article.language === "ur" ? "font-urdu text-right" : ""
                 }`}
