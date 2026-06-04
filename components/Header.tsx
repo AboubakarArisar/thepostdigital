@@ -68,7 +68,7 @@ export async function Header({ language = "en" }: { language?: Language }) {
       )}
 
       <nav aria-label="Primary" className="border-b border-soft-rule bg-elevated">
-        <div className="scrollbar-none mx-auto flex max-w-7xl items-center justify-center gap-4 overflow-x-auto px-4 py-3 text-sm font-bold text-ink">
+        <div className="scrollbar-none mx-auto flex max-w-7xl items-center justify-start gap-4 overflow-x-auto px-4 py-3 text-sm font-bold text-ink md:justify-center">
           <Link
             href={language === "en" ? "/?language=en" : "/"}
             className="shrink-0 hover:text-accent"
