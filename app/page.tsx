@@ -19,7 +19,7 @@ const languageOptions: Array<{
   href: string;
 }> = [
   { label: "EN", value: "en", href: "/?language=en" },
-  { label: "UR", value: "ur", href: "/" },
+  { label: "اردو", value: "ur", href: "/" },
 ];
 
 function normalizeLanguage(value: string | string[] | undefined) {
@@ -36,7 +36,7 @@ function LanguageSwitcher({
 }) {
   const selectedLabel =
     languageOptions.find((option) => option.value === selectedLanguage)?.label ??
-    "UR";
+    "اردو";
 
   return (
     <div className="mx-auto mt-5 w-full max-w-lg">
@@ -123,7 +123,7 @@ export default async function Home({
   }
 
   if (published.length === 0) {
-    const selectedLabel = selectedLanguage === "ur" ? "UR" : "EN";
+    const selectedLabel = selectedLanguage === "ur" ? "اردو" : "EN";
 
     return (
       <>
