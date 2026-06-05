@@ -57,8 +57,8 @@ export default async function ArticlePage({
             <span>{formatDate(article.publishedAt)}</span>
           </div>
           <figure className="mt-6">
-            <div className="aspect-[16/9] overflow-hidden bg-elevated">
-              <ArticleImage article={article} />
+            <div className="bg-elevated">
+              <ArticleImage article={article} fit="natural" />
             </div>
             {article.imageCaption && article.imageCaption !== article.excerpt && (
               <figcaption className="mt-2 border-b border-soft-rule pb-2 text-xs text-muted">

@@ -5,13 +5,18 @@ type ArticleImageProps = {
   article: Article;
   priority?: boolean;
   className?: string;
+  fit?: "cover" | "natural";
 };
 
 export function ArticleImage({
   article,
   priority = false,
   className = "",
+  fit = "natural",
 }: ArticleImageProps) {
+  const fitClass =
+    fit === "natural" ? "h-auto w-full" : "h-full w-full object-cover";
+
   if (article.mediaType === "video") {
     return (
       <video
@@ -19,7 +24,7 @@ export function ArticleImage({
         poster={article.featuredImage}
         controls
         preload="metadata"
-        className={`h-full w-full object-cover grayscale ${className}`}
+        className={`${fitClass} ${className}`}
       />
     );
   }
@@ -33,7 +38,7 @@ export function ArticleImage({
       unoptimized
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : "auto"}
-      className={`h-full w-full object-cover grayscale ${className}`}
+      className={`${fitClass} ${className}`}
     />
   );
 }

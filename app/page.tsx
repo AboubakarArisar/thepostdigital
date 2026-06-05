@@ -193,9 +193,9 @@ export default async function Home({
           >
             <Link
               href={`/article/${encodeURIComponent(lead.slug)}`}
-              className="block aspect-[16/9] overflow-hidden bg-elevated"
+              className="block bg-elevated"
             >
-              <ArticleImage article={lead} priority />
+              <ArticleImage article={lead} priority fit="natural" />
             </Link>
             <h2 className="mt-5 text-3xl font-black leading-snug text-ink sm:text-5xl">
               <Link href={`/article/${encodeURIComponent(lead.slug)}`} className="hover:underline">

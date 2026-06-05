@@ -20,9 +20,9 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
       {!compact && (
         <Link
           href={articleHref}
-          className="mb-3 block aspect-[16/10] overflow-hidden bg-elevated"
+          className="mb-3 block overflow-hidden bg-elevated"
         >
-          <ArticleImage article={article} />
+          <ArticleImage article={article} fit="natural" />
         </Link>
       )}
       <h3

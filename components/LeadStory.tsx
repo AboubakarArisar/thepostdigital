@@ -12,9 +12,9 @@ export function LeadStory({ article }: { article: Article }) {
     >
       <Link
         href={`/article/${encodeURIComponent(article.slug)}`}
-        className="block aspect-[16/10] overflow-hidden border border-soft-rule bg-elevated"
+        className="block border border-soft-rule bg-elevated"
       >
-        <ArticleImage article={article} priority />
+        <ArticleImage article={article} priority fit="natural" />
       </Link>
       <div className="mt-4">
         <div>
