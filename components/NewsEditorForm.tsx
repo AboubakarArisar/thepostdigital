@@ -68,6 +68,18 @@ const placeholders: Record<
   },
 };
 
+async function readJsonResponse<T>(response: Response) {
+  const text = await response.text();
+
+  if (!text) return {} as T;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return { error: text } as T & { error?: string };
+  }
+}
+
 async function transliterateText(text: string) {
   const response = await fetch("/api/google-input-tools", {
     method: "POST",
@@ -77,7 +89,7 @@ async function transliterateText(text: string) {
 
   if (!response.ok) return text;
 
-  const data = (await response.json()) as { text?: string };
+  const data = await readJsonResponse<{ text?: string }>(response);
   return data.text || text;
 }
 
@@ -191,18 +203,27 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
         method: "POST",
         body,
       });
-      const result = (await response.json()) as UploadedMedia & { error?: string };
+      const result = await readJsonResponse<UploadedMedia & { error?: string }>(
+        response,
+      );
 
       if (!response.ok || !result.url) {
-        setUploadError(result.error || "Upload failed. Check Cloudinary settings.");
+        setUploadError(
+          result.error ||
+            `Upload failed with HTTP ${response.status}. Check production server logs and Cloudinary settings.`,
+        );
         return;
       }
 
       setUploadedMedia(result);
       setContentType(result.mediaType === "video" ? "video" : "photo");
       setCategory(result.mediaType === "video" ? "Videos" : "Photos");
-    } catch {
-      setUploadError("Upload failed. Check your connection and Cloudinary credentials.");
+    } catch (error) {
+      setUploadError(
+        error instanceof Error
+          ? error.message
+          : "Upload failed. Check your connection and Cloudinary credentials.",
+      );
     } finally {
       setIsUploading(false);
     }
@@ -284,14 +305,17 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           isFeatured: article?.isFeatured || false,
         }),
       });
-      const result = (await response.json()) as {
+      const result = await readJsonResponse<{
         slug?: string;
         status?: ArticleStatus;
         error?: string;
-      };
+      }>(response);
 
       if (!response.ok) {
-        setSaveError(result.error || "Story could not be saved.");
+        setSaveError(
+          result.error ||
+            `Story could not be saved. Server returned HTTP ${response.status}.`,
+        );
         return;
       }
 
@@ -299,8 +323,12 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
       setSaveMessage("Saved.");
       router.refresh();
       router.push("/admin");
-    } catch {
-      setSaveError("Story could not be saved. Check the server and try again.");
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "Story could not be saved. Check the server and try again.",
+      );
     } finally {
       setIsSaving(false);
       saveInFlight.current = false;
