@@ -30,47 +30,47 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getAdminSession();
-
-  if (!session) {
-    return NextResponse.json({ error: "Admin login required." }, { status: 401 });
-  }
-
-  const article = (await request.json()) as Partial<Article>;
-
-  if (!article.title || !article.slug || !article.excerpt || !article.body?.length) {
-    return NextResponse.json(
-      { error: "Title, slug, excerpt, and body are required." },
-      { status: 400 },
-    );
-  }
-
-  if (
-    !languages.has(article.language || "") ||
-    !statuses.has(article.status || "") ||
-    !contentTypes.has(article.contentType || "") ||
-    !mediaTypes.has(article.mediaType || "")
-  ) {
-    return NextResponse.json(
-      { error: "Story language, status, type, or media type is invalid." },
-      { status: 400 },
-    );
-  }
-
-  const requestedStatus = article.status as ArticleStatus;
-  const status =
-    requestedStatus === "published" && !isSuperAdmin(session)
-      ? "pending_approval"
-      : requestedStatus;
-  const approval =
-    status === "published" && isSuperAdmin(session)
-      ? {
-          approvedBy: session.email,
-          approvedAt: new Date().toISOString(),
-        }
-      : {};
-
   try {
+    const session = await getAdminSession();
+
+    if (!session) {
+      return NextResponse.json({ error: "Admin login required." }, { status: 401 });
+    }
+
+    const article = (await request.json()) as Partial<Article>;
+
+    if (!article.title || !article.slug || !article.excerpt || !article.body?.length) {
+      return NextResponse.json(
+        { error: "Title, slug, excerpt, and body are required." },
+        { status: 400 },
+      );
+    }
+
+    if (
+      !languages.has(article.language || "") ||
+      !statuses.has(article.status || "") ||
+      !contentTypes.has(article.contentType || "") ||
+      !mediaTypes.has(article.mediaType || "")
+    ) {
+      return NextResponse.json(
+        { error: "Story language, status, type, or media type is invalid." },
+        { status: 400 },
+      );
+    }
+
+    const requestedStatus = article.status as ArticleStatus;
+    const status =
+      requestedStatus === "published" && !isSuperAdmin(session)
+        ? "pending_approval"
+        : requestedStatus;
+    const approval =
+      status === "published" && isSuperAdmin(session)
+        ? {
+            approvedBy: session.email,
+            approvedAt: new Date().toISOString(),
+          }
+        : {};
+
     const saved = await saveArticle({
       title: article.title,
       slug: article.slug,
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "Story could not be saved on the server.",
+            : "Story could not be saved by the production CRUD route.",
       },
       { status: 500 },
     );
