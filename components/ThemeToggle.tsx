@@ -49,7 +49,11 @@ export function ThemeToggle() {
       title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
       suppressHydrationWarning
     >
-      <span aria-hidden="true" className="text-base leading-none">
+      <span
+        aria-hidden="true"
+        className="text-base leading-none"
+        suppressHydrationWarning
+      >
         {theme === "dark" ? "\u2600" : "\u263E"}
       </span>
     </button>

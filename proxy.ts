@@ -64,15 +64,6 @@ function isProtectedApi(pathname: string) {
   );
 }
 
-function isPublicSitePage(pathname: string) {
-  return (
-    pathname === "/" ||
-    pathname === "/about" ||
-    pathname === "/search" ||
-    pathname.startsWith("/article")
-  );
-}
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isLoginPage = pathname === "/admin/login";
@@ -81,16 +72,8 @@ export async function proxy(request: NextRequest) {
 
   const isAuthed = await hasValidAdminSession(request);
 
-  if (isAuthed && isPublicSitePage(pathname)) {
-    return NextResponse.redirect(new URL("/admin", request.url));
-  }
-
   if (!isProtected && !isLoginPage) {
     return NextResponse.next();
-  }
-
-  if (isLoginPage && isAuthed) {
-    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   if (!isProtected) {
