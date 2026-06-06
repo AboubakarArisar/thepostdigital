@@ -10,20 +10,29 @@ const MAX_APPROVED_ADMINS = 5;
 const DEFAULT_SESSION_SECRET = "dev-only-newsclient-admin-secret";
 const DEFAULT_ADMIN_PASSWORD = "ChangeMeAdmin123!";
 
-if (process.env.NODE_ENV === "production") {
+function productionAuthConfigError() {
+  if (process.env.NODE_ENV !== "production") return null;
+
   const secret = process.env.ADMIN_SESSION_SECRET;
   if (!secret || secret === DEFAULT_SESSION_SECRET) {
-    throw new Error(
-      "ADMIN_SESSION_SECRET must be set to a non-default value in production.",
-    );
+    return "ADMIN_SESSION_SECRET must be set to a non-default value in production.";
   }
+
   const password = process.env.ADMIN_PASSWORD;
   if (!password || password === DEFAULT_ADMIN_PASSWORD) {
-    throw new Error(
-      "ADMIN_PASSWORD must be set to a non-default value in production.",
-    );
+    return "ADMIN_PASSWORD must be set to a non-default value in production.";
+  }
+
+  return null;
+}
+
+function assertProductionAuthConfig() {
+  const error = productionAuthConfigError();
+  if (error) {
+    throw new Error(error);
   }
 }
+
 const bundledDataPath = path.join(process.cwd(), "data");
 const runtimeDataPath =
   process.env.DATA_DIR ||
@@ -133,6 +142,8 @@ export async function getAdminUsers() {
 }
 
 export async function validateAdminCredentials(email: string, password: string) {
+  assertProductionAuthConfig();
+
   const normalizedEmail = email.toLowerCase();
   const user = (await getAdminUsers()).find((item) => item.email === normalizedEmail);
 
@@ -242,6 +253,8 @@ export async function removeAdminAccount(email: string) {
 }
 
 export async function createAdminSession(session: AdminSession) {
+  assertProductionAuthConfig();
+
   const issuedAt = Date.now().toString();
   const value = `${session.email}|${session.role}|${issuedAt}`;
   const token = `${value}|${sign(value)}`;
@@ -266,6 +279,8 @@ export async function isAdminSession() {
 }
 
 export async function getAdminSession(): Promise<AdminSession | null> {
+  if (productionAuthConfigError()) return null;
+
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
