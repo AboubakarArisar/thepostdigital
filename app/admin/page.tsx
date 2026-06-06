@@ -7,6 +7,8 @@ import { getArticles } from "@/lib/data";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboard() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");

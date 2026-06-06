@@ -9,6 +9,8 @@ import { getPublishedArticles } from "@/lib/data";
 import { directionFor, formatDate } from "@/lib/format";
 import type { Language } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 type HomeSearchParams = Promise<{
   language?: string | string[] | undefined;
 }>;

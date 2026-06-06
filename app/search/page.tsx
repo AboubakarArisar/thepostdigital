@@ -6,6 +6,8 @@ import { categories } from "@/lib/categories";
 import { getArticles } from "@/lib/data";
 import type { Article, Language } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 type SearchParams = Promise<{
   category?: string | string[] | undefined;
   date?: string | string[] | undefined;

@@ -4,6 +4,8 @@ import { getAdminSession } from "@/lib/auth";
 import { getArticleBySlug } from "@/lib/data";
 import { notFound, redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function EditorPage({
   searchParams,
 }: {

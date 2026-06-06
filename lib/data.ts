@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { categories, deskCategories, formatCategories } from "./categories";
@@ -11,6 +12,8 @@ const runtimeDataPath =
   (process.env.VERCEL ? path.join("/tmp", "newsclient-data") : bundledDataPath);
 const storePath = path.join(runtimeDataPath, "articles.json");
 const bundledStorePath = path.join(bundledDataPath, "articles.json");
+const cloudinaryArticlesPublicId =
+  process.env.CLOUDINARY_ARTICLES_PUBLIC_ID || "newsclient/articles.json";
 
 export const starterArticles: Article[] = [
   {
@@ -212,8 +215,100 @@ export const starterArticles: Article[] = [
 ];
 
 async function writeArticles(articles: Article[]) {
+  if (hasCloudinaryStore()) {
+    await writeCloudinaryArticles(articles);
+  }
+
+  await writeLocalArticles(articles);
+}
+
+async function writeLocalArticles(articles: Article[]) {
   await mkdir(path.dirname(storePath), { recursive: true });
   await writeFile(storePath, JSON.stringify(articles, null, 2), "utf8");
+}
+
+function hasCloudinaryStore() {
+  return Boolean(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET,
+  );
+}
+
+function signCloudinaryParams(params: Record<string, string>, apiSecret: string) {
+  const payload = Object.keys(params)
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
+
+  return createHash("sha1")
+    .update(`${payload}${apiSecret}`)
+    .digest("hex");
+}
+
+async function readCloudinaryArticles() {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  if (!cloudName) return null;
+
+  const response = await fetch(
+    `https://res.cloudinary.com/${cloudName}/raw/upload/${cloudinaryArticlesPublicId}?_=${Date.now()}`,
+    { cache: "no-store" },
+  );
+
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    throw new Error(`Cloudinary article store returned HTTP ${response.status}.`);
+  }
+
+  return (await response.json()) as Article[];
+}
+
+async function writeCloudinaryArticles(articles: Article[]) {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new Error("Cloudinary article store is missing required credentials.");
+  }
+
+  const timestamp = Math.round(Date.now() / 1000).toString();
+  const params = {
+    invalidate: "true",
+    overwrite: "true",
+    public_id: cloudinaryArticlesPublicId,
+    timestamp,
+  };
+  const form = new FormData();
+  const json = JSON.stringify(articles, null, 2);
+
+  form.append("file", new Blob([json], { type: "application/json" }), "articles.json");
+  form.append("api_key", apiKey);
+  form.append("invalidate", params.invalidate);
+  form.append("overwrite", params.overwrite);
+  form.append("public_id", params.public_id);
+  form.append("timestamp", timestamp);
+  form.append("signature", signCloudinaryParams(params, apiSecret));
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
+    {
+      method: "POST",
+      body: form,
+    },
+  );
+
+  if (!response.ok) {
+    const result = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+
+    throw new Error(
+      result?.error?.message ||
+        `Cloudinary article store upload failed with HTTP ${response.status}.`,
+    );
+  }
 }
 
 async function readBundledArticles() {
@@ -237,9 +332,24 @@ function normalizeSlug(value: string) {
 }
 
 export async function getArticles() {
+  if (hasCloudinaryStore()) {
+    const cloudinaryArticles = await readCloudinaryArticles();
+
+    if (cloudinaryArticles) {
+      await writeLocalArticles(cloudinaryArticles);
+      return cloudinaryArticles;
+    }
+  }
+
   try {
     const contents = await readFile(storePath, "utf8");
-    return JSON.parse(contents) as Article[];
+    const articles = JSON.parse(contents) as Article[];
+
+    if (hasCloudinaryStore()) {
+      await writeCloudinaryArticles(articles);
+    }
+
+    return articles;
   } catch {
     const seedArticles = (await readBundledArticles()) ?? starterArticles;
     await writeArticles(seedArticles);

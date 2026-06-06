@@ -5,6 +5,8 @@ import { getAdminSession } from "@/lib/auth";
 import { getArticles } from "@/lib/data";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminArchivePage() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
