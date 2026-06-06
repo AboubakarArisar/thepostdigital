@@ -245,8 +245,8 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
     setSaveError("");
     setSaveMessage("");
 
-    if (!fields.title.trim() || !fields.excerpt.trim() || !fields.body.trim()) {
-      setSaveError("Title, excerpt, and body are required before saving.");
+    if (!fields.title.trim() || !fields.body.trim()) {
+      setSaveError("Title and body are required before saving.");
       saveInFlight.current = false;
       return;
     }
@@ -384,7 +384,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
 
         <div>
           <label htmlFor="excerpt" className="editor-label">
-            Subtitle / Excerpt
+            Subtitle / Excerpt optional
           </label>
           <textarea
             id="excerpt"

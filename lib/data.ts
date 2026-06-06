@@ -362,7 +362,7 @@ export async function saveArticle(article: Article) {
   const matchingArticle = articles.find(
     (item) =>
       item.title.trim() === article.title.trim() &&
-      item.excerpt.trim() === article.excerpt.trim() &&
+      (item.excerpt || "").trim() === (article.excerpt || "").trim() &&
       item.body.join("\n\n").trim() === article.body.join("\n\n").trim() &&
       item.language === article.language &&
       item.createdBy === article.createdBy,

@@ -49,9 +49,11 @@ export default async function ArticlePage({
           <h1 className="text-4xl font-black leading-snug text-ink sm:text-6xl">
             {article.title}
           </h1>
-          <p className="mt-5 max-w-3xl text-xl leading-8 text-muted">
-            {article.excerpt}
-          </p>
+          {article.excerpt && (
+            <p className="mt-5 max-w-3xl text-xl leading-8 text-muted">
+              {article.excerpt}
+            </p>
+          )}
           <div className="mt-5 flex flex-wrap gap-3 text-sm font-bold text-muted">
             <span>{article.author}</span>
             <span>{formatDate(article.publishedAt)}</span>

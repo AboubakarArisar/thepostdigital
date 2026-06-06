@@ -34,7 +34,7 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
           {article.title}
         </Link>
       </h3>
-      {!compact && (
+      {!compact && article.excerpt && (
         <p className="mt-2 text-sm leading-6 text-muted">{article.excerpt}</p>
       )}
       <p className="mt-2 text-sm text-muted">{formatDate(article.publishedAt)}</p>

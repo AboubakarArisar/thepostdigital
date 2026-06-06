@@ -39,9 +39,9 @@ export async function POST(request: Request) {
 
     const article = (await request.json()) as Partial<Article>;
 
-    if (!article.title || !article.slug || !article.excerpt || !article.body?.length) {
+    if (!article.title || !article.slug || !article.body?.length) {
       return NextResponse.json(
-        { error: "Title, slug, excerpt, and body are required." },
+        { error: "Title, slug, and body are required." },
         { status: 400 },
       );
     }
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     const saved = await saveArticle({
       title: article.title,
       slug: article.slug,
-      excerpt: article.excerpt,
+      excerpt: article.excerpt || "",
       body: article.body,
       language: article.language as Language,
       category: article.category || "News",

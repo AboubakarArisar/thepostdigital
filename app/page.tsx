@@ -204,7 +204,9 @@ export default async function Home({
                 {lead.title}
               </Link>
             </h2>
-            <p className="mt-3 text-lg leading-8 text-muted">{lead.excerpt}</p>
+            {lead.excerpt && (
+              <p className="mt-3 text-lg leading-8 text-muted">{lead.excerpt}</p>
+            )}
             <p className="mt-3 text-sm text-muted">{formatDate(lead.publishedAt)}</p>
           </article>
         </section>

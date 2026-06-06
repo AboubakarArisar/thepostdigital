@@ -29,9 +29,11 @@ export function LeadStory({ article }: { article: Article }) {
               {article.title}
             </Link>
           </h1>
-          <p className="mt-3 text-base leading-7 text-muted">
-            {article.excerpt}
-          </p>
+          {article.excerpt && (
+            <p className="mt-3 text-base leading-7 text-muted">
+              {article.excerpt}
+            </p>
+          )}
         </div>
         <p className="mt-5 border-t border-soft-rule pt-3 text-xs font-bold uppercase tracking-[0.14em] text-muted">
           {article.author} / {formatDate(article.publishedAt)} /{" "}
