@@ -7,11 +7,33 @@ import type { AdminRole, AdminUser } from "./types";
 const SESSION_COOKIE = "post_admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 8;
 const MAX_APPROVED_ADMINS = 5;
-const userStorePath = path.join(process.cwd(), "data", "admin-users.json");
+const DEFAULT_SESSION_SECRET = "dev-only-newsclient-admin-secret";
+const DEFAULT_ADMIN_PASSWORD = "ChangeMeAdmin123!";
+
+if (process.env.NODE_ENV === "production") {
+  const secret = process.env.ADMIN_SESSION_SECRET;
+  if (!secret || secret === DEFAULT_SESSION_SECRET) {
+    throw new Error(
+      "ADMIN_SESSION_SECRET must be set to a non-default value in production.",
+    );
+  }
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password || password === DEFAULT_ADMIN_PASSWORD) {
+    throw new Error(
+      "ADMIN_PASSWORD must be set to a non-default value in production.",
+    );
+  }
+}
+const bundledDataPath = path.join(process.cwd(), "data");
+const runtimeDataPath =
+  process.env.DATA_DIR ||
+  (process.env.VERCEL ? path.join("/tmp", "newsclient-data") : bundledDataPath);
+const userStorePath = path.join(runtimeDataPath, "admin-users.json");
+const bundledUserStorePath = path.join(bundledDataPath, "admin-users.json");
 
 export const seededAdmin = {
   email: process.env.ADMIN_EMAIL || "admin@post.local",
-  password: process.env.ADMIN_PASSWORD || "ChangeMeAdmin123!",
+  password: process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD,
   name: process.env.ADMIN_NAME || "Super Admin",
 };
 
@@ -21,7 +43,7 @@ export type AdminSession = {
 };
 
 function sessionSecret() {
-  return process.env.ADMIN_SESSION_SECRET || "dev-only-newsclient-admin-secret";
+  return process.env.ADMIN_SESSION_SECRET || DEFAULT_SESSION_SECRET;
 }
 
 function sign(value: string) {
@@ -55,6 +77,16 @@ async function writeAdminUsers(users: AdminUser[]) {
   await writeFile(userStorePath, JSON.stringify(users, null, 2), "utf8");
 }
 
+async function readBundledAdminUsers() {
+  if (bundledUserStorePath === userStorePath) return null;
+
+  try {
+    return JSON.parse(await readFile(bundledUserStorePath, "utf8")) as AdminUser[];
+  } catch {
+    return null;
+  }
+}
+
 function seededSuperAdmin(): AdminUser {
   const now = new Date().toISOString();
   return {
@@ -75,9 +107,8 @@ export async function getAdminUsers() {
   try {
     users = JSON.parse(await readFile(userStorePath, "utf8")) as AdminUser[];
   } catch {
-    users = [seededSuperAdmin()];
+    users = (await readBundledAdminUsers()) ?? [seededSuperAdmin()];
     await writeAdminUsers(users);
-    return users;
   }
 
   const superEmail = seededAdmin.email.toLowerCase();
@@ -242,6 +273,11 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   const [email, role, issuedAt, signature] = token.split("|");
   if (!email || !role || !issuedAt || !signature) return null;
   if (role !== "super_admin" && role !== "admin") return null;
+
+  const issuedAtMs = Number(issuedAt);
+  if (!Number.isFinite(issuedAtMs) || Date.now() - issuedAtMs > SESSION_MAX_AGE * 1000) {
+    return null;
+  }
 
   if (!safeEqual(signature, sign(`${email}|${role}|${issuedAt}`))) return null;
 

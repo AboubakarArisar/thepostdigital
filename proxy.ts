@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "post_admin_session";
+const SESSION_MAX_AGE = 60 * 60 * 8;
+const DEFAULT_SESSION_SECRET = "dev-only-newsclient-admin-secret";
+
+if (
+  process.env.NODE_ENV === "production" &&
+  (!process.env.ADMIN_SESSION_SECRET ||
+    process.env.ADMIN_SESSION_SECRET === DEFAULT_SESSION_SECRET)
+) {
+  throw new Error(
+    "ADMIN_SESSION_SECRET must be set to a non-default value in production.",
+  );
+}
 
 function bytesToHex(bytes: ArrayBuffer) {
   return Array.from(new Uint8Array(bytes))
@@ -9,7 +21,7 @@ function bytesToHex(bytes: ArrayBuffer) {
 }
 
 async function sign(value: string) {
-  const secret = process.env.ADMIN_SESSION_SECRET || "dev-only-newsclient-admin-secret";
+  const secret = process.env.ADMIN_SESSION_SECRET || DEFAULT_SESSION_SECRET;
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -34,6 +46,11 @@ async function hasValidAdminSession(request: NextRequest) {
 
   if (!email || !role || !issuedAt || !signature) return false;
   if (role !== "super_admin" && role !== "admin") return false;
+
+  const issuedAtMs = Number(issuedAt);
+  if (!Number.isFinite(issuedAtMs) || Date.now() - issuedAtMs > SESSION_MAX_AGE * 1000) {
+    return false;
+  }
 
   return signature === (await sign(`${email}|${role}|${issuedAt}`));
 }

@@ -70,36 +70,48 @@ export async function POST(request: Request) {
         }
       : {};
 
-  const saved = await saveArticle({
-    title: article.title,
-    slug: article.slug,
-    excerpt: article.excerpt,
-    body: article.body,
-    language: article.language as Language,
-    category: article.category || "News",
-    contentType: article.contentType as ArticleContentType,
-    tags: article.tags || [],
-    author: article.author || "News Desk",
-    featuredImage: article.featuredImage || article.mediaUrl || "",
-    mediaUrl: article.mediaUrl || article.featuredImage || "",
-    mediaType: article.mediaType as ArticleMediaType,
-    imageCaption: article.imageCaption || article.title,
-    status,
-    publishedAt: article.publishedAt || new Date().toISOString(),
-    readingTime: article.readingTime || 1,
-    views: article.views || 0,
-    isBreaking: article.isBreaking || false,
-    isFeatured: article.isFeatured || false,
-    createdBy: session.email,
-    ...approval,
-  });
+  try {
+    const saved = await saveArticle({
+      title: article.title,
+      slug: article.slug,
+      excerpt: article.excerpt,
+      body: article.body,
+      language: article.language as Language,
+      category: article.category || "News",
+      contentType: article.contentType as ArticleContentType,
+      tags: article.tags || [],
+      author: article.author || "News Desk",
+      featuredImage: article.featuredImage || article.mediaUrl || "",
+      mediaUrl: article.mediaUrl || article.featuredImage || "",
+      mediaType: article.mediaType as ArticleMediaType,
+      imageCaption: article.imageCaption || article.title,
+      status,
+      publishedAt: article.publishedAt || new Date().toISOString(),
+      readingTime: article.readingTime || 1,
+      views: article.views || 0,
+      isBreaking: article.isBreaking || false,
+      isFeatured: article.isFeatured || false,
+      createdBy: session.email,
+      ...approval,
+    });
 
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/search");
-  revalidatePath(`/article/${encodeURIComponent(saved.slug)}`);
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/search");
+    revalidatePath(`/article/${encodeURIComponent(saved.slug)}`);
 
-  return NextResponse.json(saved, { status: 201 });
+    return NextResponse.json(saved, { status: 201 });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Story could not be saved on the server.",
+      },
+      { status: 500 },
+    );
+  }
 }
 
 export async function DELETE(request: Request) {

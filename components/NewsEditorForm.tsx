@@ -418,7 +418,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           )}
           {isUploading && (
             <p className="mt-3 text-sm font-bold text-zinc-700">
-              Uploading to Cloudinary...
+              Uploading image...
             </p>
           )}
           {uploadError && (
@@ -428,13 +428,13 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           )}
           {uploadedMedia && (
             <div className="mt-3 overflow-hidden border border-black bg-white text-sm">
-              <div className="aspect-[16/9] bg-black">
+              <div className="bg-black">
                 {uploadedMedia.mediaType === "image" ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={uploadedMedia.url}
                     alt="Uploaded story media preview"
-                    className="h-full w-full object-cover"
+                    className="h-auto w-full"
                   />
                 ) : (
                   <video

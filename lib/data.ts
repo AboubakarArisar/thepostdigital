@@ -5,7 +5,12 @@ import type { Article } from "./types";
 
 export { categories, deskCategories, formatCategories };
 
-const storePath = path.join(process.cwd(), "data", "articles.json");
+const bundledDataPath = path.join(process.cwd(), "data");
+const runtimeDataPath =
+  process.env.DATA_DIR ||
+  (process.env.VERCEL ? path.join("/tmp", "newsclient-data") : bundledDataPath);
+const storePath = path.join(runtimeDataPath, "articles.json");
+const bundledStorePath = path.join(bundledDataPath, "articles.json");
 
 export const starterArticles: Article[] = [
   {
@@ -211,6 +216,16 @@ async function writeArticles(articles: Article[]) {
   await writeFile(storePath, JSON.stringify(articles, null, 2), "utf8");
 }
 
+async function readBundledArticles() {
+  if (bundledStorePath === storePath) return null;
+
+  try {
+    return JSON.parse(await readFile(bundledStorePath, "utf8")) as Article[];
+  } catch {
+    return null;
+  }
+}
+
 function normalizeSlug(value: string) {
   return (
     value
@@ -226,8 +241,9 @@ export async function getArticles() {
     const contents = await readFile(storePath, "utf8");
     return JSON.parse(contents) as Article[];
   } catch {
-    await writeArticles(starterArticles);
-    return starterArticles;
+    const seedArticles = (await readBundledArticles()) ?? starterArticles;
+    await writeArticles(seedArticles);
+    return seedArticles;
   }
 }
 
