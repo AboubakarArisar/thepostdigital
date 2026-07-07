@@ -42,6 +42,45 @@ export const metadata: Metadata = {
   },
 };
 
+// Site-wide Organization + WebSite structured data. This is what lets Google
+// associate the brand name "The Post Digital" with this domain (and enables a
+// logo/knowledge panel and the sitelinks search box for brand-name searches).
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "NewsMediaOrganization",
+      "@id": `${siteConfig.url}/#organization`,
+      name: siteConfig.name,
+      alternateName: "TPD",
+      url: siteConfig.url,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteConfig.url}/icon.png`,
+        width: 512,
+        height: 512,
+      },
+      sameAs: siteConfig.social,
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${siteConfig.url}/#website`,
+      name: siteConfig.name,
+      url: siteConfig.url,
+      publisher: { "@id": `${siteConfig.url}/#organization` },
+      inLanguage: ["en-PK", "ur-PK"],
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${siteConfig.url}/search?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
+
 const themeScript = `
 (() => {
   try {
@@ -69,6 +108,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         {children}
         <VisitorTracker />
       </body>
