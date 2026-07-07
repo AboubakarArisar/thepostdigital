@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { ArticleBody } from "@/components/ArticleBody";
 import { ArticleCard } from "@/components/ArticleCard";
 import { ArticleImage } from "@/components/ArticleImage";
@@ -10,8 +12,60 @@ import {
   getRelatedArticles,
 } from "@/lib/data";
 import { articleTextClass, directionFor, formatDate } from "@/lib/format";
+import { siteConfig } from "@/lib/site";
+import type { Article } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+// Fetched by both generateMetadata and the page; cache() collapses it to one read.
+const getArticle = cache(getPublishedArticleBySlug);
+
+function articleDescription(article: Article) {
+  const source = article.excerpt || article.body[0] || siteConfig.description;
+  return source.length > 200 ? `${source.slice(0, 197).trimEnd()}…` : source;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const article = await getArticle(slug);
+
+  if (!article) {
+    return { title: "Story not found", robots: { index: false, follow: false } };
+  }
+
+  const description = articleDescription(article);
+  const canonical = `/article/${encodeURIComponent(article.slug)}`;
+  const image = article.featuredImage || article.mediaUrl;
+
+  return {
+    title: article.title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "article",
+      title: article.title,
+      description,
+      url: `${siteConfig.url}${canonical}`,
+      siteName: siteConfig.name,
+      locale: article.language === "ur" ? "ur_PK" : "en_PK",
+      publishedTime: article.publishedAt,
+      authors: [article.author],
+      section: article.category,
+      tags: article.tags,
+      images: image ? [{ url: image, alt: article.title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description,
+      images: image ? [image] : undefined,
+    },
+  };
+}
 
 export default async function ArticlePage({
   params,
@@ -19,7 +73,7 @@ export default async function ArticlePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const article = await getPublishedArticleBySlug(slug);
+  const article = await getArticle(slug);
 
   if (!article) notFound();
 
@@ -28,8 +82,32 @@ export default async function ArticlePage({
     .filter((item) => item.slug !== article.slug && item.language === article.language)
     .slice(0, 3);
 
+  const canonicalUrl = `${siteConfig.url}/article/${encodeURIComponent(article.slug)}`;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: article.title,
+    description: articleDescription(article),
+    image: [article.featuredImage || article.mediaUrl].filter(Boolean),
+    datePublished: article.publishedAt,
+    dateModified: article.publishedAt,
+    inLanguage: article.language === "ur" ? "ur-PK" : "en-PK",
+    articleSection: article.category,
+    keywords: article.tags.join(", "),
+    author: { "@type": "Person", name: article.author },
+    publisher: {
+      "@type": "Organization",
+      name: siteConfig.name,
+    },
+    mainEntityOfPage: { "@type": "WebPage", "@id": canonicalUrl },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Header language={article.language} />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10">
         <div className="grid gap-10 lg:grid-cols-[20rem_1fr]">

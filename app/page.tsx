@@ -183,15 +183,23 @@ export default async function Home({
         </section>
 
         <section className="grid gap-8 lg:grid-cols-[1fr_1.15fr]">
-          <div className="grid gap-6 sm:grid-cols-2">
-            {featureCards.map((article) => (
-              <ArticleCard article={article} key={article.slug} />
-            ))}
+          <div>
+            <p
+              dir={selectedLanguage === "ur" ? "rtl" : "ltr"}
+              className={`mb-4 border-b border-soft-rule pb-2 text-xs font-black uppercase tracking-[0.14em] text-muted ${selectedLanguage === "ur" ? "font-urdu text-right" : ""}`}
+            >
+              {selectedLanguage === "ur" ? "مزید اہم خبریں" : "Top stories"}
+            </p>
+            <div className="grid gap-6 sm:grid-cols-2">
+              {featureCards.map((article) => (
+                <ArticleCard article={article} key={article.slug} />
+              ))}
+            </div>
           </div>
           <article
             lang={lead.language}
             dir={directionFor(lead.language)}
-            className={lead.language === "ur" ? "font-urdu text-right" : "text-left"}
+            className={`lg:border-l lg:border-soft-rule lg:pl-8 ${lead.language === "ur" ? "font-urdu text-right" : "text-left"}`}
           >
             <Link
               href={`/article/${encodeURIComponent(lead.slug)}`}
@@ -226,11 +234,17 @@ export default async function Home({
         </section>
       </main>
       <nav className={`fixed inset-x-0 bottom-0 z-10 grid border-t border-rule bg-paper text-center text-[10px] font-black uppercase tracking-[0.12em] text-ink md:hidden ${adminSession ? "grid-cols-4" : "grid-cols-2"}`}>
-        <Link className="border-r border-rule py-3" href="/">
-          Home
+        <Link
+          className={`border-r border-rule py-3 ${selectedLanguage === "ur" ? "font-urdu" : ""}`}
+          href={selectedLanguage === "en" ? "/?language=en" : "/"}
+        >
+          {selectedLanguage === "ur" ? "صفحہ اول" : "Home"}
         </Link>
-        <Link className={adminSession ? "border-r border-rule py-3" : "py-3"} href="/search">
-          Search
+        <Link
+          className={`${adminSession ? "border-r border-rule py-3" : "py-3"} ${selectedLanguage === "ur" ? "font-urdu" : ""}`}
+          href={selectedLanguage === "en" ? "/search?language=en" : "/search"}
+        >
+          {selectedLanguage === "ur" ? "تلاش" : "Search"}
         </Link>
         {adminSession && (
           <>

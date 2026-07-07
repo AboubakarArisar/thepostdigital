@@ -1,7 +1,9 @@
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { AdminUsersTable } from "@/components/AdminUsersTable";
 import { ArticleTable } from "@/components/ArticleTable";
+import { AudiencePanel } from "@/components/AudiencePanel";
 import { StatsCard } from "@/components/StatsCard";
+import { getAnalytics } from "@/lib/analytics";
 import { getAdminSession, getAdminUsers, isSuperAdmin } from "@/lib/auth";
 import { getArticles } from "@/lib/data";
 import Link from "next/link";
@@ -26,6 +28,7 @@ export default async function AdminDashboard() {
   ).length;
   const adminUsers = isSuperAdmin(session) ? await getAdminUsers() : [];
   const pendingAdminUsers = adminUsers.filter((user) => user.status === "pending").length;
+  const analytics = await getAnalytics();
 
   return (
     <main className="grid min-h-screen md:grid-cols-[16rem_1fr]">
@@ -87,6 +90,9 @@ export default async function AdminDashboard() {
             value={String(archivedArticles.length)}
             detail="Hidden stories kept in the admin archive"
           />
+        </div>
+        <div className="mt-6">
+          <AudiencePanel analytics={analytics} />
         </div>
         <div className="mt-6">
           <ArticleTable

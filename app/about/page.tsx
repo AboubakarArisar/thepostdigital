@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+
+export const metadata: Metadata = {
+  title: "About",
+  description:
+    "The Post Digital is a modern Pakistani newsroom publishing independent English and Urdu journalism with accuracy, context, and civic usefulness.",
+  alternates: { canonical: "/about" },
+};
 
 const values = [
   {

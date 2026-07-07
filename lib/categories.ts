@@ -1,17 +1,17 @@
 import type { Category } from "./types";
 
 export const categories: Category[] = [
-  { name: "News", slug: "news", group: "format" },
-  { name: "Editorials", slug: "editorials", group: "format" },
-  { name: "Photos", slug: "photos", group: "format" },
-  { name: "Videos", slug: "videos", group: "format" },
-  { name: "Pakistan", slug: "pakistan", group: "desk" },
-  { name: "Politics", slug: "politics", group: "desk" },
-  { name: "Business", slug: "business", group: "desk" },
-  { name: "World", slug: "world", group: "desk" },
-  { name: "Sports", slug: "sports", group: "desk" },
-  { name: "Technology", slug: "technology", group: "desk" },
-  { name: "Opinion", slug: "opinion", group: "desk" },
+  { name: "News", nameUr: "خبریں", slug: "news", group: "format" },
+  { name: "Editorials", nameUr: "اداریے", slug: "editorials", group: "format" },
+  { name: "Photos", nameUr: "تصاویر", slug: "photos", group: "format" },
+  { name: "Videos", nameUr: "ویڈیوز", slug: "videos", group: "format" },
+  { name: "Pakistan", nameUr: "پاکستان", slug: "pakistan", group: "desk" },
+  { name: "Politics", nameUr: "سیاست", slug: "politics", group: "desk" },
+  { name: "Business", nameUr: "کاروبار", slug: "business", group: "desk" },
+  { name: "World", nameUr: "دنیا", slug: "world", group: "desk" },
+  { name: "Sports", nameUr: "کھیل", slug: "sports", group: "desk" },
+  { name: "Technology", nameUr: "ٹیکنالوجی", slug: "technology", group: "desk" },
+  { name: "Opinion", nameUr: "رائے", slug: "opinion", group: "desk" },
 ];
 
 export const formatCategories = categories.filter(

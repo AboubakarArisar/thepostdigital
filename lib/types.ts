@@ -38,6 +38,7 @@ export type Article = {
 
 export type Category = {
   name: string;
+  nameUr: string;
   slug: string;
   group: "desk" | "format";
 };

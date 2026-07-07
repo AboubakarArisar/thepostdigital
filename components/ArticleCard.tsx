@@ -15,7 +15,7 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
     <article
       lang={article.language}
       dir={directionFor(article.language)}
-      className={`border-b border-soft-rule pb-5 ${articleTextClass(article)}`}
+      className={`group border-b border-soft-rule pb-5 ${articleTextClass(article)}`}
     >
       {!compact && (
         <Link
@@ -26,7 +26,7 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
         </Link>
       )}
       <h3
-        className={`font-black leading-snug text-ink ${
+        className={`font-black leading-snug text-ink transition-colors group-hover:text-accent ${
           compact ? "text-lg" : "text-xl"
         }`}
       >

@@ -6,9 +6,9 @@ import type { Language } from "@/lib/types";
 import { SiteLogo } from "./SiteLogo";
 import { ThemeToggle } from "./ThemeToggle";
 
-const labels: Record<Language, { home: string; search: string }> = {
-  en: { home: "Home", search: "Search" },
-  ur: { home: "صفحہ اول", search: "تلاش" },
+const labels: Record<Language, { home: string; search: string; about: string }> = {
+  en: { home: "Home", search: "Search", about: "About" },
+  ur: { home: "صفحہ اول", search: "تلاش", about: "ہمارے بارے میں" },
 };
 
 export async function Header({ language = "en" }: { language?: Language }) {
@@ -17,7 +17,7 @@ export async function Header({ language = "en" }: { language?: Language }) {
   const recentArticles = [...articles]
     .filter((article) => article.language === language)
     .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt))
-    .slice(0, 8);
+    .slice(0, 2);
   const copy = labels[language];
 
   return (
@@ -68,7 +68,10 @@ export async function Header({ language = "en" }: { language?: Language }) {
       )}
 
       <nav aria-label="Primary" className="border-b border-soft-rule bg-elevated">
-        <div className="scrollbar-none mx-auto flex max-w-7xl items-center justify-start gap-4 overflow-x-auto px-4 py-3 text-sm font-bold text-ink md:justify-center">
+        <div
+          dir={language === "ur" ? "rtl" : "ltr"}
+          className={`scrollbar-none mx-auto flex max-w-7xl items-center justify-start gap-4 overflow-x-auto px-4 py-3 text-sm font-bold text-ink md:justify-center ${language === "ur" ? "font-urdu" : ""}`}
+        >
           <Link
             href={language === "en" ? "/?language=en" : "/"}
             className="shrink-0 hover:text-accent"
@@ -87,11 +90,18 @@ export async function Header({ language = "en" }: { language?: Language }) {
               key={category.slug}
               className="shrink-0 hover:text-accent"
             >
-              {category.name === "Technology" ? "Tech" : category.name}
+              {language === "ur"
+                ? category.nameUr
+                : category.name === "Technology"
+                  ? "Tech"
+                  : category.name}
             </Link>
           ))}
-          <Link href="/about" className="shrink-0 hover:text-accent">
-            About
+          <Link
+            href={language === "en" ? "/about?language=en" : "/about"}
+            className="shrink-0 hover:text-accent"
+          >
+            {copy.about}
           </Link>
         </div>
       </nav>

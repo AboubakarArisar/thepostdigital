@@ -39,8 +39,19 @@ yarn-error.log*
 # runtime admin store (contains password hashes — never commit)
 /data/admin-users.json
 
+# runtime visitor analytics store
+/data/analytics.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 .next
 CLAUDE.md
+
+*.md
+
+*.png
+
+# Metadata icons must ship with the app (they override the *.png rule above)
+!app/icon.png
+!app/apple-icon.png
