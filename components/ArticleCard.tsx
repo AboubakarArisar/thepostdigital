@@ -6,9 +6,14 @@ import { ArticleImage } from "./ArticleImage";
 type ArticleCardProps = {
   article: Article;
   compact?: boolean;
+  hideExcerpt?: boolean;
 };
 
-export function ArticleCard({ article, compact = false }: ArticleCardProps) {
+export function ArticleCard({
+  article,
+  compact = false,
+  hideExcerpt = false,
+}: ArticleCardProps) {
   const articleHref = `/article/${encodeURIComponent(article.slug)}`;
 
   return (
@@ -34,7 +39,7 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
           {article.title}
         </Link>
       </h3>
-      {!compact && article.excerpt && (
+      {!compact && !hideExcerpt && article.excerpt && (
         <p className="mt-2 text-sm leading-6 text-muted">{article.excerpt}</p>
       )}
       <p className="mt-2 text-sm text-muted">{formatDate(article.publishedAt)}</p>

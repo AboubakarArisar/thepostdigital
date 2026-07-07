@@ -157,8 +157,8 @@ export default async function Home({
     .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt))
   const lead = latest.find((article) => article.isFeatured) ?? latest[0];
   const secondary = latest.filter((article) => article.slug !== lead.slug);
-  const featureCards = secondary.slice(0, 2);
-  const moreStories = secondary.slice(2);
+  const heroCards = secondary.slice(0, 4);
+  const moreStories = secondary.slice(4);
 
   return (
     <>
@@ -182,24 +182,11 @@ export default async function Home({
           />
         </section>
 
-        <section className="grid gap-8 lg:grid-cols-[1fr_1.15fr]">
-          <div>
-            <p
-              dir={selectedLanguage === "ur" ? "rtl" : "ltr"}
-              className={`mb-4 border-b border-soft-rule pb-2 text-xs font-black uppercase tracking-[0.14em] text-muted ${selectedLanguage === "ur" ? "font-urdu text-right" : ""}`}
-            >
-              {selectedLanguage === "ur" ? "مزید اہم خبریں" : "Top stories"}
-            </p>
-            <div className="grid gap-6 sm:grid-cols-2">
-              {featureCards.map((article) => (
-                <ArticleCard article={article} key={article.slug} />
-              ))}
-            </div>
-          </div>
+        <section className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
           <article
             lang={lead.language}
             dir={directionFor(lead.language)}
-            className={`lg:border-l lg:border-soft-rule lg:pl-8 ${lead.language === "ur" ? "font-urdu text-right" : "text-left"}`}
+            className={`lg:order-2 ${lead.language === "ur" ? "font-urdu text-right" : "text-left"}`}
           >
             <Link
               href={`/article/${encodeURIComponent(lead.slug)}`}
@@ -207,7 +194,7 @@ export default async function Home({
             >
               <ArticleImage article={lead} priority fit="natural" />
             </Link>
-            <h2 className="mt-5 text-3xl font-black leading-snug text-ink sm:text-5xl">
+            <h2 className="mt-5 text-3xl font-black leading-snug text-ink sm:text-4xl">
               <Link href={`/article/${encodeURIComponent(lead.slug)}`} className="hover:underline">
                 {lead.title}
               </Link>
@@ -217,6 +204,11 @@ export default async function Home({
             )}
             <p className="mt-3 text-sm text-muted">{formatDate(lead.publishedAt)}</p>
           </article>
+          <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:order-1">
+            {heroCards.map((article) => (
+              <ArticleCard article={article} hideExcerpt key={article.slug} />
+            ))}
+          </div>
         </section>
 
         <section className="mt-12 border-t border-soft-rule pt-8">
