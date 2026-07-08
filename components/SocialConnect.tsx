@@ -1,17 +1,15 @@
 const socialLinks = [
   {
-    label: "Instagram",
-    href: "https://www.instagram.com/the_post_digital",
-    bg: "bg-[#d62976]",
+    label: "Facebook",
+    href: "https://www.facebook.com/thepostdigitalpk",
+    bg: "bg-[#1877f2]",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6">
-        <rect x="4" y="4" width="16" height="16" rx="5" fill="none" stroke="currentColor" strokeWidth="2" />
-        <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
-        <circle cx="17" cy="7" r="1.2" fill="currentColor" />
+        <path d="M22 12c0-5.5-4.5-10-10-10S2 6.5 2 12c0 4.9 3.5 9 8.1 9.9v-7H7.9v-3h2.2V9.8c0-2.2 1.3-3.4 3.3-3.4.9 0 1.8.1 1.8.1v2h-1c-1 0-1.3.6-1.3 1.2v1.5h2.5l-.4 3h-2v7C18.5 21 22 16.9 22 12Z" fill="currentColor" />
       </svg>
     ),
   },
-  {
+   {
     label: "YouTube",
     href: "https://www.youtube.com/channel/UCzvrQhJQHOyF7eWpwbCuuow",
     bg: "bg-[#ff0000]",
@@ -23,16 +21,18 @@ const socialLinks = [
     ),
   },
   {
-    label: "TikTok",
-    href: "https://www.tiktok.com/@thepostdigital1",
-    bg: "bg-black",
+    label: "Instagram",
+    href: "https://www.instagram.com/the_post_digital",
+    bg: "bg-[#d62976]",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6">
-        <path d="M15 4c.4 2.5 1.8 4 4 4.3v3a7 7 0 0 1-4-1.2v5.4a5 5 0 1 1-5-5c.4 0 .8 0 1.1.1v3.2a2 2 0 1 0 1 1.7V4h2.9Z" fill="currentColor" />
+        <rect x="4" y="4" width="16" height="16" rx="5" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="17" cy="7" r="1.2" fill="currentColor" />
       </svg>
     ),
   },
-  {
+   {
     label: "X",
     href: "https://x.com/thepostdigital2",
     bg: "bg-black",
@@ -42,6 +42,17 @@ const socialLinks = [
       </svg>
     ),
   },
+ 
+  {
+    label: "TikTok",
+    href: "https://www.tiktok.com/@thepostdigital1",
+    bg: "bg-black",
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6">
+        <path d="M15 4c.4 2.5 1.8 4 4 4.3v3a7 7 0 0 1-4-1.2v5.4a5 5 0 1 1-5-5c.4 0 .8 0 1.1.1v3.2a2 2 0 1 0 1 1.7V4h2.9Z" fill="currentColor" />
+      </svg>
+    ),
+  }
 ];
 
 export function SocialConnect() {
