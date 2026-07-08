@@ -206,7 +206,7 @@ export default async function Home({
           </article>
           <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:order-1">
             {heroCards.map((article) => (
-              <ArticleCard article={article} hideExcerpt key={article.slug} />
+              <ArticleCard article={article} horizontal key={article.slug} />
             ))}
           </div>
         </section>
@@ -220,7 +220,7 @@ export default async function Home({
           </h2>
           <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
             {moreStories.map((article) => (
-              <ArticleCard article={article} key={article.slug} />
+              <ArticleCard article={article} horizontal key={article.slug} />
             ))}
           </div>
         </section>
