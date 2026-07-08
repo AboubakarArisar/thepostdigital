@@ -54,7 +54,7 @@ export async function Header({ language = "en" }: { language?: Language }) {
                   <Link
                     href={`/article/${encodeURIComponent(article.slug)}`}
                     key={`${article.slug}-${index}`}
-                    className="shrink-0 hover:underline"
+                    className="shrink-0"
                     aria-hidden={index >= recentArticles.length}
                     tabIndex={index >= recentArticles.length ? -1 : undefined}
                   >
