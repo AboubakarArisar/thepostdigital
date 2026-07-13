@@ -191,6 +191,31 @@ export default async function Home({
     return qs ? `/?${qs}` : "/";
   };
 
+  const leadTextClass =
+    lead.language === "ur" ? "font-urdu text-right" : "text-left";
+  const leadBlock = (
+    <>
+      <Link
+        href={`/article/${encodeURIComponent(lead.slug)}`}
+        className="block bg-elevated"
+      >
+        <ArticleImage article={lead} priority fit="natural" />
+      </Link>
+      <h2 className="mt-5 text-3xl font-black leading-snug text-ink sm:text-4xl">
+        <Link
+          href={`/article/${encodeURIComponent(lead.slug)}`}
+          className="hover:underline"
+        >
+          {lead.title}
+        </Link>
+      </h2>
+      {lead.excerpt && (
+        <p className="mt-3 text-lg leading-8 text-muted">{lead.excerpt}</p>
+      )}
+      <p className="mt-3 text-sm text-muted">{formatDate(lead.publishedAt)}</p>
+    </>
+  );
+
   return (
     <>
       <Header language={selectedLanguage} />
@@ -213,36 +238,36 @@ export default async function Home({
           />
         </section>
 
-        {showHero && (
-          <section className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
-            <article
-              lang={lead.language}
-              dir={directionFor(lead.language)}
-              className={`lg:order-2 ${lead.language === "ur" ? "font-urdu text-right" : "text-left"}`}
+        {showHero &&
+          (heroCards.length > 0 ? (
+            <section
+              dir={directionFor(selectedLanguage)}
+              className="grid gap-x-8 gap-y-10 lg:grid-cols-2"
             >
-              <Link
-                href={`/article/${encodeURIComponent(lead.slug)}`}
-                className="block bg-elevated"
+              <article
+                lang={lead.language}
+                dir={directionFor(lead.language)}
+                className={`lg:order-1 ${leadTextClass}`}
               >
-                <ArticleImage article={lead} priority fit="natural" />
-              </Link>
-              <h2 className="mt-5 text-3xl font-black leading-snug text-ink sm:text-4xl">
-                <Link href={`/article/${encodeURIComponent(lead.slug)}`} className="hover:underline">
-                  {lead.title}
-                </Link>
-              </h2>
-              {lead.excerpt && (
-                <p className="mt-3 text-lg leading-8 text-muted">{lead.excerpt}</p>
-              )}
-              <p className="mt-3 text-sm text-muted">{formatDate(lead.publishedAt)}</p>
-            </article>
-            <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:order-1">
-              {heroCards.map((article) => (
-                <ArticleCard article={article} horizontal key={article.slug} />
-              ))}
-            </div>
-          </section>
-        )}
+                {leadBlock}
+              </article>
+              <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:order-2">
+                {heroCards.map((article) => (
+                  <ArticleCard article={article} horizontal key={article.slug} />
+                ))}
+              </div>
+            </section>
+          ) : (
+            <section className="mx-auto max-w-3xl">
+              <article
+                lang={lead.language}
+                dir={directionFor(lead.language)}
+                className={leadTextClass}
+              >
+                {leadBlock}
+              </article>
+            </section>
+          ))}
 
         {pageStories.length > 0 && (
           <section className={showHero ? "mt-12 border-t border-soft-rule pt-8" : ""}>

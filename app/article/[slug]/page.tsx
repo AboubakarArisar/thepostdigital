@@ -102,6 +102,49 @@ export default async function ArticlePage({
     mainEntityOfPage: { "@type": "WebPage", "@id": canonicalUrl },
   };
 
+  // Mirror the page for the article's language: Urdu (RTL) keeps the story on
+  // the right with the rail on the left; English (LTR) flips it.
+  const isUrdu = article.language === "ur";
+  const gridColumns = isUrdu
+    ? "lg:grid-cols-[20rem_1fr]"
+    : "lg:grid-cols-[1fr_20rem]";
+  const asideOrder = isUrdu ? "lg:order-1" : "lg:order-2";
+  const articleOrder = isUrdu ? "lg:order-2" : "lg:order-1";
+
+  const articleMain = (
+    <article
+      lang={article.language}
+      dir={directionFor(article.language)}
+      className={articleTextClass(article)}
+    >
+      <h1 className="text-4xl font-black leading-snug text-ink sm:text-6xl">
+        {article.title}
+      </h1>
+      {article.excerpt && (
+        <p className="mt-5 max-w-3xl text-xl leading-8 text-muted">
+          {article.excerpt}
+        </p>
+      )}
+      <div className="mt-5 flex flex-wrap gap-3 text-sm font-bold text-muted">
+        <span>{article.author}</span>
+        <span>{formatDateTime(article.publishedAt)}</span>
+      </div>
+      <figure className="mt-6">
+        <div className="bg-elevated">
+          <ArticleImage article={article} fit="natural" />
+        </div>
+        {article.imageCaption && article.imageCaption !== article.excerpt && (
+          <figcaption className="mt-2 border-b border-soft-rule pb-2 text-xs text-muted">
+            {article.imageCaption}
+          </figcaption>
+        )}
+      </figure>
+      <div className="mt-8">
+        <ArticleBody article={article} />
+      </div>
+    </article>
+  );
+
   return (
     <>
       <script
@@ -110,68 +153,44 @@ export default async function ArticlePage({
       />
       <Header language={article.language} />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10">
-        <div className="grid gap-10 lg:grid-cols-[20rem_1fr]">
-          <aside className="order-2 space-y-4 lg:order-1">
+        {important.length > 0 ? (
+          <div className={`grid gap-10 ${gridColumns}`}>
+            <aside className={`order-2 space-y-4 ${asideOrder}`}>
+              <h2
+                dir={directionFor(article.language)}
+                className={`text-3xl font-black text-ink ${
+                  isUrdu ? "font-urdu text-right" : "text-left"
+                }`}
+              >
+                {isUrdu ? "اہم خبریں" : "Top stories"}
+              </h2>
+              {important.map((item) => (
+                <ArticleCard article={item} compact key={item.slug} />
+              ))}
+            </aside>
+            <div className={`order-1 ${articleOrder}`}>{articleMain}</div>
+          </div>
+        ) : (
+          <div className="mx-auto max-w-3xl">{articleMain}</div>
+        )}
+
+        {related.length > 0 && (
+          <section className="mt-12 border-t border-soft-rule pt-8">
             <h2
               dir={directionFor(article.language)}
-              className={`text-3xl font-black text-ink ${
-                article.language === "ur" ? "font-urdu text-right" : "text-left"
+              className={`mb-5 text-3xl font-black text-ink ${
+                isUrdu ? "font-urdu text-right" : "text-left"
               }`}
             >
-              {article.language === "ur" ? "اہم خبریں" : "Top stories"}
+              {isUrdu ? "متعلقہ خبریں" : "Related stories"}
             </h2>
-            {important.map((item) => (
-              <ArticleCard article={item} compact key={item.slug} />
-            ))}
-          </aside>
-        <article
-          lang={article.language}
-          dir={directionFor(article.language)}
-          className={`order-1 ${articleTextClass(article)} lg:order-2`}
-        >
-          <h1 className="text-4xl font-black leading-snug text-ink sm:text-6xl">
-            {article.title}
-          </h1>
-          {article.excerpt && (
-            <p className="mt-5 max-w-3xl text-xl leading-8 text-muted">
-              {article.excerpt}
-            </p>
-          )}
-          <div className="mt-5 flex flex-wrap gap-3 text-sm font-bold text-muted">
-            <span>{article.author}</span>
-            <span>{formatDateTime(article.publishedAt)}</span>
-          </div>
-          <figure className="mt-6">
-            <div className="bg-elevated">
-              <ArticleImage article={article} fit="natural" />
+            <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+              {related.map((item) => (
+                <ArticleCard article={item} horizontal key={item.slug} />
+              ))}
             </div>
-            {article.imageCaption && article.imageCaption !== article.excerpt && (
-              <figcaption className="mt-2 border-b border-soft-rule pb-2 text-xs text-muted">
-                {article.imageCaption}
-              </figcaption>
-            )}
-          </figure>
-          <div className="mt-8">
-            <ArticleBody article={article} />
-          </div>
-        </article>
-        </div>
-
-        <section className="mt-12 border-t border-soft-rule pt-8">
-          <h2
-            dir={directionFor(article.language)}
-            className={`mb-5 text-3xl font-black text-ink ${
-              article.language === "ur" ? "font-urdu text-right" : "text-left"
-            }`}
-          >
-            {article.language === "ur" ? "متعلقہ خبریں" : "Related stories"}
-          </h2>
-          <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-            {related.map((item) => (
-              <ArticleCard article={item} horizontal key={item.slug} />
-            ))}
-          </div>
-        </section>
+          </section>
+        )}
       </main>
       <Footer />
     </>

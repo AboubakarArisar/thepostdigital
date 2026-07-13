@@ -78,6 +78,11 @@ img {
   width: max-content;
 }
 
+/* English ticker scrolls left-to-right; Urdu keeps the default right-to-left. */
+.recent-news-marquee--reverse {
+  animation-direction: reverse;
+}
+
 .recent-news-marquee:hover {
   animation-play-state: paused;
 }

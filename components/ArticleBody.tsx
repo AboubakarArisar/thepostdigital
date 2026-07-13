@@ -7,7 +7,7 @@ export function ArticleBody({ article }: { article: Article }) {
       lang={article.language}
       dir={directionFor(article.language)}
       className={`article-body ${
-        article.language === "ur" ? "font-urdu text-right" : ""
+        article.language === "ur" ? "font-urdu text-right" : "text-left"
       }`}
     >
       {article.body.map((paragraph) => (
