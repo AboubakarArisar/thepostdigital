@@ -26,7 +26,9 @@ type NewsEditorFormProps = {
   currentRole: AdminRole;
 };
 
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+// Cloudinary free-plan single-file caps: 10 MB per image, 100 MB per video.
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 const punctuationTriggerKeys = new Set([
   " ",
@@ -182,42 +184,89 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
 
     if (!file) return;
 
-    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+
+    if (!isImage && !isVideo) {
       setUploadError("Only image and video files can be attached to stories.");
       return;
     }
 
-    if (file.size > MAX_UPLOAD_BYTES) {
+    const limit = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    if (file.size > limit) {
       setUploadError(
-        `This file is ${formatFileSize(file.size)}. The Cloudinary free-plan limit for this newsroom is 100 MB.`,
+        `This file is ${formatFileSize(file.size)}. The Cloudinary free-plan limit is ${
+          isVideo ? "100 MB for video" : "10 MB for images"
+        }.`,
       );
       return;
     }
 
     setIsUploading(true);
-    const body = new FormData();
-    body.append("file", file);
 
     try {
-      const response = await fetch("/api/cloudinary-upload", {
+      // 1) Ask our server to sign the upload. This request carries no file
+      // bytes, so it stays well under Vercel's 4.5 MB function-payload limit.
+      const signResponse = await fetch("/api/cloudinary-sign", {
         method: "POST",
-        body,
       });
-      const result = await readJsonResponse<UploadedMedia & { error?: string }>(
-        response,
-      );
+      const sign = await readJsonResponse<{
+        cloudName?: string;
+        apiKey?: string;
+        folder?: string;
+        timestamp?: string;
+        signature?: string;
+        error?: string;
+      }>(signResponse);
 
-      if (!response.ok || !result.url) {
+      if (!signResponse.ok || !sign.signature || !sign.cloudName) {
         setUploadError(
-          result.error ||
-            `Upload failed with HTTP ${response.status}. Check production server logs and Cloudinary settings.`,
+          sign.error ||
+            `Could not start the upload (HTTP ${signResponse.status}). Check Cloudinary settings.`,
         );
         return;
       }
 
-      setUploadedMedia(result);
-      setContentType(result.mediaType === "video" ? "video" : "photo");
-      setCategory(result.mediaType === "video" ? "Videos" : "Photos");
+      // 2) Send the file straight to Cloudinary from the browser — this is what
+      // avoids FUNCTION_PAYLOAD_TOO_LARGE for anything over 4.5 MB.
+      const resourceType = isVideo ? "video" : "image";
+      const body = new FormData();
+      body.append("file", file);
+      body.append("api_key", sign.apiKey ?? "");
+      body.append("folder", sign.folder ?? "");
+      body.append("timestamp", sign.timestamp ?? "");
+      body.append("signature", sign.signature);
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${sign.cloudName}/${resourceType}/upload`,
+        { method: "POST", body },
+      );
+      const result = await readJsonResponse<{
+        secure_url?: string;
+        public_id?: string;
+        bytes?: number;
+        resource_type?: string;
+        error?: { message?: string };
+      }>(response);
+
+      if (!response.ok || !result.secure_url) {
+        setUploadError(
+          result.error?.message ||
+            `Cloudinary rejected the upload (HTTP ${response.status}).`,
+        );
+        return;
+      }
+
+      const mediaType: ArticleMediaType =
+        result.resource_type === "video" ? "video" : "image";
+      setUploadedMedia({
+        url: result.secure_url,
+        publicId: result.public_id,
+        mediaType,
+        bytes: result.bytes,
+      });
+      setContentType(mediaType === "video" ? "video" : "photo");
+      setCategory(mediaType === "video" ? "Videos" : "Photos");
     } catch (error) {
       setUploadError(
         error instanceof Error
@@ -436,8 +485,8 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             Choose file
           </label>
           <p className="mt-3 text-sm text-zinc-600">
-            Upload images or videos to Cloudinary. Files over 100 MB are blocked
-            before upload because the free plan cannot handle them reliably.
+            Uploaded straight to Cloudinary. Images up to 10 MB, videos up to
+            100 MB (free-plan limits).
           </p>
           {isEditing && uploadedMedia?.url && (
             <p className="mt-3 break-all text-sm font-bold">

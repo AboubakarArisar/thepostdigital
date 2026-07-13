@@ -11,7 +11,7 @@ import {
   getPublishedArticles,
   getRelatedArticles,
 } from "@/lib/data";
-import { articleTextClass, directionFor, formatDate } from "@/lib/format";
+import { articleTextClass, directionFor, formatDateTime } from "@/lib/format";
 import { siteConfig } from "@/lib/site";
 import type { Article } from "@/lib/types";
 
@@ -112,8 +112,13 @@ export default async function ArticlePage({
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10">
         <div className="grid gap-10 lg:grid-cols-[20rem_1fr]">
           <aside className="order-2 space-y-4 lg:order-1">
-            <h2 className="text-right text-3xl font-black text-ink">
-              اہم خبریں
+            <h2
+              dir={directionFor(article.language)}
+              className={`text-3xl font-black text-ink ${
+                article.language === "ur" ? "font-urdu text-right" : "text-left"
+              }`}
+            >
+              {article.language === "ur" ? "اہم خبریں" : "Top stories"}
             </h2>
             {important.map((item) => (
               <ArticleCard article={item} compact key={item.slug} />
@@ -134,7 +139,7 @@ export default async function ArticlePage({
           )}
           <div className="mt-5 flex flex-wrap gap-3 text-sm font-bold text-muted">
             <span>{article.author}</span>
-            <span>{formatDate(article.publishedAt)}</span>
+            <span>{formatDateTime(article.publishedAt)}</span>
           </div>
           <figure className="mt-6">
             <div className="bg-elevated">
@@ -153,12 +158,17 @@ export default async function ArticlePage({
         </div>
 
         <section className="mt-12 border-t border-soft-rule pt-8">
-          <h2 className="mb-5 text-right text-3xl font-black text-ink">
-            Related stories
+          <h2
+            dir={directionFor(article.language)}
+            className={`mb-5 text-3xl font-black text-ink ${
+              article.language === "ur" ? "font-urdu text-right" : "text-left"
+            }`}
+          >
+            {article.language === "ur" ? "متعلقہ خبریں" : "Related stories"}
           </h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {related.map((item) => (
-              <ArticleCard article={item} key={item.slug} />
+              <ArticleCard article={item} horizontal key={item.slug} />
             ))}
           </div>
         </section>

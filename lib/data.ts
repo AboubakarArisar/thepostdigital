@@ -431,11 +431,14 @@ export async function getPublishedArticleBySlug(slug: string) {
 
 export async function getRelatedArticles(article: Article) {
   const published = await getPublishedArticles();
-  const related = published
-    .filter(
-      (item) => item.slug !== article.slug && item.category === article.category,
-    )
-    .concat(published.filter((item) => item.slug !== article.slug));
+  // Only surface stories in the same language as the article being read, so an
+  // Urdu story never lists English related items (and vice versa).
+  const sameLanguage = published.filter(
+    (item) => item.slug !== article.slug && item.language === article.language,
+  );
+  const related = sameLanguage
+    .filter((item) => item.category === article.category)
+    .concat(sameLanguage);
   const seenSlugs = new Set<string>();
 
   return related

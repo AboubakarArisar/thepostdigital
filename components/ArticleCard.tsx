@@ -18,6 +18,35 @@ export function ArticleCard({
 }: ArticleCardProps) {
   const articleHref = `/article/${encodeURIComponent(article.slug)}`;
 
+  // Compact sidebar row: a small thumbnail beside the headline, kept horizontal
+  // at every breakpoint (used in the article page's "اہم خبریں" rail).
+  if (compact) {
+    return (
+      <article
+        lang={article.language}
+        dir={directionFor(article.language)}
+        className={`group flex gap-3 border-b border-soft-rule pb-4 ${articleTextClass(article)}`}
+      >
+        <Link
+          href={articleHref}
+          className="block h-16 w-24 shrink-0 overflow-hidden bg-elevated"
+        >
+          <ArticleImage article={article} fit="cover" />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-black leading-snug text-ink transition-colors group-hover:text-accent">
+            <Link href={articleHref} className="hover:underline">
+              {article.title}
+            </Link>
+          </h3>
+          <p className="mt-1 text-xs text-muted">
+            {formatDate(article.publishedAt)}
+          </p>
+        </div>
+      </article>
+    );
+  }
+
   // BBC-style list row on mobile (text beside a small thumbnail), reverting to
   // the normal vertical card — image on top — from the `sm` breakpoint up.
   if (horizontal) {

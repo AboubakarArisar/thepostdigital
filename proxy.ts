@@ -59,6 +59,7 @@ function isProtectedApi(pathname: string) {
   return (
     pathname.startsWith("/api/articles") ||
     pathname.startsWith("/api/cloudinary-upload") ||
+    pathname.startsWith("/api/cloudinary-sign") ||
     pathname.startsWith("/api/admin/users") ||
     pathname.startsWith("/api/admin/logout")
   );
@@ -100,6 +101,7 @@ export const config = {
     "/admin/:path*",
     "/api/articles/:path*",
     "/api/cloudinary-upload",
+    "/api/cloudinary-sign",
     "/api/admin/users/:path*",
     "/api/admin/logout",
   ],
