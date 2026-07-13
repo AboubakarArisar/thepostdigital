@@ -16,6 +16,8 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
   const [activeEmail, setActiveEmail] = useState("");
   const [error, setError] = useState("");
   const pendingUsers = users.filter((user) => user.status === "pending");
+  // Rejected accounts are hidden from the list — only pending/approved show.
+  const visibleUsers = users.filter((user) => user.status !== "rejected");
 
   async function verify(email: string, status: "approved" | "rejected") {
     setError("");
@@ -92,7 +94,14 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-black">
-          {users.map((user) => (
+          {visibleUsers.length === 0 ? (
+            <tr>
+              <td className="p-6 text-center font-bold text-zinc-600" colSpan={6}>
+                No admin accounts to show.
+              </td>
+            </tr>
+          ) : (
+            visibleUsers.map((user) => (
             <tr key={user.email}>
               <td className="p-3 font-bold">{user.name}</td>
               <td className="p-3">{user.email}</td>
@@ -139,7 +148,8 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                 )}
               </td>
             </tr>
-          ))}
+            ))
+          )}
         </tbody>
       </table>
       </div>

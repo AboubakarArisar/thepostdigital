@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { formatDate, languageName } from "@/lib/format";
 import type { AdminRole, Article } from "@/lib/types";
+
+const ARTICLES_PER_PAGE = 10;
 
 const statusClass = {
   draft: "bg-white text-black",
@@ -31,6 +34,14 @@ export function ArticleTable({
   title?: string;
 }) {
   const router = useRouter();
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(articles.length / ARTICLES_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const pageArticles = articles.slice(
+    (currentPage - 1) * ARTICLES_PER_PAGE,
+    currentPage * ARTICLES_PER_PAGE,
+  );
 
   async function deleteStory(slug: string) {
     const confirmed = window.confirm(
@@ -94,7 +105,8 @@ export function ArticleTable({
   }
 
   return (
-    <div className="overflow-x-auto border-2 border-black">
+    <div className="border-2 border-black">
+      <div className="overflow-x-auto">
       <table className="w-full min-w-[760px] border-collapse text-left text-sm">
         <caption className="border-b-2 border-black bg-black px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-white">
           {title}
@@ -119,7 +131,7 @@ export function ArticleTable({
               </td>
             </tr>
           ) : (
-            articles.map((article) => (
+            pageArticles.map((article) => (
             <tr key={article.slug}>
               <td className="max-w-xs p-3 font-bold">{article.title}</td>
               <td className="p-3">{article.category}</td>
@@ -180,6 +192,30 @@ export function ArticleTable({
           )}
         </tbody>
       </table>
+      </div>
+      {totalPages > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-black  px-3 py-3">
+          <button
+            type="button"
+            onClick={() => setPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="border-2 border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-white disabled:pointer-events-none disabled:opacity-40"
+          >
+            Prev
+          </button>
+          <span className="text-xs font-black uppercase tracking-[0.12em]">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="border-2 border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-white disabled:pointer-events-none disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { ArticleCard } from "@/components/ArticleCard";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { ArticleImage } from "@/components/ArticleImage";
+import { Pagination } from "@/components/Pagination";
 import { SocialConnect } from "@/components/SocialConnect";
 import { getAdminSession } from "@/lib/auth";
 import { getPublishedArticles } from "@/lib/data";
@@ -13,7 +14,16 @@ export const dynamic = "force-dynamic";
 
 type HomeSearchParams = Promise<{
   language?: string | string[] | undefined;
+  page?: string | string[] | undefined;
 }>;
+
+const MORE_STORIES_PER_PAGE = 12;
+
+function normalizePage(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const parsed = Number.parseInt(raw ?? "1", 10);
+  return Number.isFinite(parsed) && parsed > 1 ? parsed : 1;
+}
 
 const languageOptions: Array<{
   label: string;
@@ -92,7 +102,8 @@ export default async function Home({
 }) {
   const adminSession = await getAdminSession();
   const allPublished = await getPublishedArticles();
-  const selectedLanguage = normalizeLanguage((await searchParams).language);
+  const params = await searchParams;
+  const selectedLanguage = normalizeLanguage(params.language);
   const languageCounts = {
     en: allPublished.filter((article) => article.language === "en").length,
     ur: allPublished.filter((article) => article.language === "ur").length,
@@ -158,7 +169,27 @@ export default async function Home({
   const lead = latest.find((article) => article.isFeatured) ?? latest[0];
   const secondary = latest.filter((article) => article.slug !== lead.slug);
   const heroCards = secondary.slice(0, 4);
-  const moreStories = secondary.slice(4);
+
+  // Everything past the hero is paginated. The hero (lead + 4 cards) only
+  // appears on the first page; later pages are a plain grid of more stories.
+  const moreStoriesPool = secondary.slice(4);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(moreStoriesPool.length / MORE_STORIES_PER_PAGE),
+  );
+  const currentPage = Math.min(normalizePage(params.page), totalPages);
+  const showHero = currentPage === 1;
+  const pageStories = moreStoriesPool.slice(
+    (currentPage - 1) * MORE_STORIES_PER_PAGE,
+    currentPage * MORE_STORIES_PER_PAGE,
+  );
+  const createHref = (page: number) => {
+    const query = new URLSearchParams();
+    if (selectedLanguage === "en") query.set("language", "en");
+    if (page > 1) query.set("page", String(page));
+    const qs = query.toString();
+    return qs ? `/?${qs}` : "/";
+  };
 
   return (
     <>
@@ -182,48 +213,59 @@ export default async function Home({
           />
         </section>
 
-        <section className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
-          <article
-            lang={lead.language}
-            dir={directionFor(lead.language)}
-            className={`lg:order-2 ${lead.language === "ur" ? "font-urdu text-right" : "text-left"}`}
-          >
-            <Link
-              href={`/article/${encodeURIComponent(lead.slug)}`}
-              className="block bg-elevated"
+        {showHero && (
+          <section className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
+            <article
+              lang={lead.language}
+              dir={directionFor(lead.language)}
+              className={`lg:order-2 ${lead.language === "ur" ? "font-urdu text-right" : "text-left"}`}
             >
-              <ArticleImage article={lead} priority fit="natural" />
-            </Link>
-            <h2 className="mt-5 text-3xl font-black leading-snug text-ink sm:text-4xl">
-              <Link href={`/article/${encodeURIComponent(lead.slug)}`} className="hover:underline">
-                {lead.title}
+              <Link
+                href={`/article/${encodeURIComponent(lead.slug)}`}
+                className="block bg-elevated"
+              >
+                <ArticleImage article={lead} priority fit="natural" />
               </Link>
-            </h2>
-            {lead.excerpt && (
-              <p className="mt-3 text-lg leading-8 text-muted">{lead.excerpt}</p>
-            )}
-            <p className="mt-3 text-sm text-muted">{formatDate(lead.publishedAt)}</p>
-          </article>
-          <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:order-1">
-            {heroCards.map((article) => (
-              <ArticleCard article={article} horizontal key={article.slug} />
-            ))}
-          </div>
-        </section>
+              <h2 className="mt-5 text-3xl font-black leading-snug text-ink sm:text-4xl">
+                <Link href={`/article/${encodeURIComponent(lead.slug)}`} className="hover:underline">
+                  {lead.title}
+                </Link>
+              </h2>
+              {lead.excerpt && (
+                <p className="mt-3 text-lg leading-8 text-muted">{lead.excerpt}</p>
+              )}
+              <p className="mt-3 text-sm text-muted">{formatDate(lead.publishedAt)}</p>
+            </article>
+            <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:order-1">
+              {heroCards.map((article) => (
+                <ArticleCard article={article} horizontal key={article.slug} />
+              ))}
+            </div>
+          </section>
+        )}
 
-        <section className="mt-12 border-t border-soft-rule pt-8">
-          <h2
-            dir={selectedLanguage === "ur" ? "rtl" : "ltr"}
-            className={`mb-6 text-3xl font-black text-ink ${selectedLanguage === "ur" ? "font-urdu text-right" : ""}`}
-          >
-            {selectedLanguage === "ur" ? "مزید خبریں" : "More stories"}
-          </h2>
-          <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-            {moreStories.map((article) => (
-              <ArticleCard article={article} horizontal key={article.slug} />
-            ))}
-          </div>
-        </section>
+        {pageStories.length > 0 && (
+          <section className={showHero ? "mt-12 border-t border-soft-rule pt-8" : ""}>
+            <h2
+              dir={selectedLanguage === "ur" ? "rtl" : "ltr"}
+              className={`mb-6 text-3xl font-black text-ink ${selectedLanguage === "ur" ? "font-urdu text-right" : ""}`}
+            >
+              {selectedLanguage === "ur" ? "مزید خبریں" : "More stories"}
+            </h2>
+            <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+              {pageStories.map((article) => (
+                <ArticleCard article={article} horizontal key={article.slug} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          createHref={createHref}
+          language={selectedLanguage}
+        />
       </main>
       <nav className={`fixed inset-x-0 bottom-0 z-10 grid border-t border-rule bg-paper text-center text-[10px] font-black uppercase tracking-[0.12em] text-ink md:hidden ${adminSession ? "grid-cols-4" : "grid-cols-2"}`}>
         <Link

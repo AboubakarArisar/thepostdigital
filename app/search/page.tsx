@@ -1,6 +1,7 @@
 import { ArticleCard } from "@/components/ArticleCard";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { Pagination } from "@/components/Pagination";
 import { SearchFilters } from "@/components/SearchFilters";
 import { categories } from "@/lib/categories";
 import { getArticles } from "@/lib/data";
@@ -14,7 +15,10 @@ type SearchParams = Promise<{
   language?: string | string[] | undefined;
   q?: string | string[] | undefined;
   sort?: string | string[] | undefined;
+  page?: string | string[] | undefined;
 }>;
+
+const RESULTS_PER_PAGE = 12;
 
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -120,6 +124,31 @@ export default async function SearchPage({
       return +new Date(b.publishedAt) - +new Date(a.publishedAt);
     });
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredArticles.length / RESULTS_PER_PAGE),
+  );
+  const requestedPage = Number.parseInt(firstParam(params.page) ?? "1", 10);
+  const currentPage = Math.min(
+    Math.max(Number.isFinite(requestedPage) ? requestedPage : 1, 1),
+    totalPages,
+  );
+  const pageResults = filteredArticles.slice(
+    (currentPage - 1) * RESULTS_PER_PAGE,
+    currentPage * RESULTS_PER_PAGE,
+  );
+  const createHref = (page: number) => {
+    const search = new URLSearchParams();
+    if (selectedCategory) search.set("category", selectedCategory);
+    if (selectedDate) search.set("date", selectedDate);
+    if (language) search.set("language", language);
+    if (query) search.set("q", query);
+    if (sort) search.set("sort", sort);
+    if (page > 1) search.set("page", String(page));
+    const qs = search.toString();
+    return qs ? `/search?${qs}` : "/search";
+  };
+
   return (
     <>
       <Header language={language} />
@@ -151,14 +180,22 @@ export default async function SearchPage({
                 </p>
               </div>
             ) : (
-              <div className="mt-6 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-                {filteredArticles.map((article) => (
-                  <ArticleCard
-                    article={article}
-                    key={`${article.slug}-${article.publishedAt}`}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="mt-6 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+                  {pageResults.map((article) => (
+                    <ArticleCard
+                      article={article}
+                      key={`${article.slug}-${article.publishedAt}`}
+                    />
+                  ))}
+                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  createHref={createHref}
+                  language={language}
+                />
+              </>
             )}
           </section>
         </div>
