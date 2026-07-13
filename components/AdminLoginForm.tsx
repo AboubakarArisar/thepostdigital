@@ -47,7 +47,7 @@ export function AdminLoginForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="admin@post.local"
-          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
+          className="w-full border border-wheat-900 bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-wheat-900"
         />
       </div>
       <div>
@@ -62,18 +62,18 @@ export function AdminLoginForm() {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Your password"
-          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
+          className="w-full border border-wheat-900 bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-wheat-900"
         />
       </div>
       {error && (
-        <p className="border border-black bg-accent-soft p-3 text-sm font-bold" role="alert">
+        <p className="border border-wheat-900 bg-accent-soft p-3 text-sm font-bold" role="alert">
           {error}
         </p>
       )}
       <button
         type="submit"
         disabled={isSubmitting}
-        className="block w-full border-2 border-black bg-black px-3 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60"
+        className="block w-full border-2 border-wheat-900 bg-black px-3 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60"
       >
         {isSubmitting ? "Checking..." : "Login"}
       </button>

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { formatDate, languageName } from "@/lib/format";
 import type { AdminRole, Article } from "@/lib/types";
 
@@ -34,35 +36,53 @@ export function ArticleTable({
   title?: string;
 }) {
   const router = useRouter();
+  const [items, setItems] = useState<Article[]>(articles);
   const [page, setPage] = useState(1);
+  const [pendingDelete, setPendingDelete] = useState<Article | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const totalPages = Math.max(1, Math.ceil(articles.length / ARTICLES_PER_PAGE));
+  // Re-sync when the server sends a fresh list (e.g. after router.refresh()).
+  useEffect(() => {
+    setItems(articles);
+  }, [articles]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / ARTICLES_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
-  const pageArticles = articles.slice(
+  const pageArticles = items.slice(
     (currentPage - 1) * ARTICLES_PER_PAGE,
     currentPage * ARTICLES_PER_PAGE,
   );
 
-  async function deleteStory(slug: string) {
-    const confirmed = window.confirm(
-      "Delete this story permanently from the newsroom?",
-    );
-    if (!confirmed) return;
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const slug = pendingDelete.slug;
+    setDeleting(true);
 
-    const response = await fetch(articleCollectionApiRoute(slug), {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      router.refresh();
+    try {
+      const response = await fetch(articleCollectionApiRoute(slug), {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        // Remove locally so the table updates without a refresh.
+        setItems((current) => current.filter((item) => item.slug !== slug));
+        setPendingDelete(null);
+        toast.success("Story deleted.");
+      } else {
+        const result = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        toast.error(result.error || "Could not delete this story.");
+      }
+    } catch {
+      toast.error("Could not delete this story. Check your connection.");
+    } finally {
+      setDeleting(false);
     }
   }
 
   async function changeStatus(article: Article) {
     const nextStatus = article.status === "published" ? "draft" : "published";
-    const confirmed = window.confirm(
-      `${nextStatus === "published" ? "Publish" : "Move to draft"} "${article.title}"?`,
-    );
-    if (!confirmed) return;
 
     const response = await fetch(articleApiRoute(article.slug), {
       method: "PUT",
@@ -71,7 +91,12 @@ export function ArticleTable({
     });
 
     if (response.ok) {
+      toast.success(
+        nextStatus === "published" ? "Story published." : "Moved to draft.",
+      );
       router.refresh();
+    } else {
+      toast.error("Could not update this story.");
     }
   }
 
@@ -83,16 +108,14 @@ export function ArticleTable({
     });
 
     if (response.ok) {
+      toast.success("Submitted for approval.");
       router.refresh();
+    } else {
+      toast.error("Could not submit this story.");
     }
   }
 
   async function archiveStory(article: Article) {
-    const confirmed = window.confirm(
-      `Archive "${article.title}"? It will only appear in the archive.`,
-    );
-    if (!confirmed) return;
-
     const response = await fetch(articleApiRoute(article.slug), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -100,19 +123,26 @@ export function ArticleTable({
     });
 
     if (response.ok) {
+      // Archived stories leave the live table immediately.
+      setItems((current) =>
+        current.filter((item) => item.slug !== article.slug),
+      );
+      toast.success("Story archived.");
       router.refresh();
+    } else {
+      toast.error("Could not archive this story.");
     }
   }
 
   return (
-    <div className="border-2 border-black">
+    <div className="border-2 border-wheat-900">
       <div className="overflow-x-auto">
       <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-        <caption className="border-b-2 border-black bg-black px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-yellow-400">
+        <caption className="border-b-2 border-wheat-900 bg-elevated px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-ink">
           {title}
         </caption>
         <thead>
-          <tr className="border-b-2 border-black text-xs uppercase tracking-[0.14em]">
+          <tr className="border-b-2 border-wheat-900 text-xs uppercase tracking-[0.14em]">
             <th className="p-3">Title</th>
             <th className="p-3">Category</th>
             <th className="p-3">Type</th>
@@ -123,8 +153,8 @@ export function ArticleTable({
             <th className="p-3">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-black">
-          {articles.length === 0 ? (
+        <tbody className="divide-y divide-wheat-900">
+          {items.length === 0 ? (
             <tr>
               <td className="p-6 text-center font-bold text-zinc-600" colSpan={8}>
                 No stories found here.
@@ -140,7 +170,7 @@ export function ArticleTable({
               <td className="p-3">{languageName(article.language)}</td>
               <td className="p-3">
                 <span
-                  className={`border border-black px-2 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusClass[article.status]}`}
+                  className={`border border-wheat-900 px-2 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusClass[article.status]}`}
                 >
                   {article.status}
                 </span>
@@ -181,7 +211,7 @@ export function ArticleTable({
                   <button
                     className="cursor-pointer font-bold underline"
                     type="button"
-                    onClick={() => deleteStory(article.slug)}
+                    onClick={() => setPendingDelete(article)}
                   >
                     Delete
                   </button>
@@ -194,7 +224,7 @@ export function ArticleTable({
       </table>
       </div>
       {totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-black  px-3 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-wheat-900  px-3 py-3">
           <button
             type="button"
             onClick={() => setPage(currentPage - 1)}
@@ -216,6 +246,22 @@ export function ArticleTable({
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title="Delete story"
+        message={
+          pendingDelete
+            ? `Delete "${pendingDelete.title}" permanently from the newsroom? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+      />
     </div>
   );
 }

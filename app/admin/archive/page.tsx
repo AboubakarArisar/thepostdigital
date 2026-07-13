@@ -18,7 +18,7 @@ export default async function AdminArchivePage() {
     <main className="grid min-h-screen md:grid-cols-[16rem_1fr]">
       <AdminSidebar />
       <section className="p-4 md:p-6">
-        <div className="border-b-4 border-black pb-4">
+        <div className="border-b-4 border-wheat-900 pb-4">
           <p className="text-xs font-black uppercase tracking-[0.16em]">
             Newsroom
           </p>

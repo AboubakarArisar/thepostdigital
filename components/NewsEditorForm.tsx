@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { deskCategories, formatCategories } from "@/lib/categories";
 import type {
   AdminRole,
@@ -166,7 +167,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           : "Save Story";
 
   const inputClass =
-    "w-full border border-black bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-black";
+    "w-full border border-wheat-900 bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-wheat-900";
   const copy = placeholders[language];
 
   function updateField(name: TextFieldName, value: string) {
@@ -267,6 +268,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
       });
       setContentType(mediaType === "video" ? "video" : "photo");
       setCategory(mediaType === "video" ? "Videos" : "Photos");
+      toast.success(`${mediaType === "video" ? "Video" : "Image"} uploaded.`);
     } catch (error) {
       setUploadError(
         error instanceof Error
@@ -361,23 +363,33 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
       }>(response);
 
       if (!response.ok) {
-        setSaveError(
+        const message =
           result.error ||
-            `Story could not be saved. Server returned HTTP ${response.status}.`,
-        );
+          `Story could not be saved. Server returned HTTP ${response.status}.`;
+        setSaveError(message);
+        toast.error(message);
         return;
       }
 
-      setStatus(result.status || nextStatus);
+      const savedStatus = result.status || nextStatus;
+      setStatus(savedStatus);
       setSaveMessage("Saved.");
+      toast.success(
+        savedStatus === "published"
+          ? "Story published."
+          : savedStatus === "pending_approval"
+            ? "Submitted for approval."
+            : "Story saved.",
+      );
       router.refresh();
       router.push("/admin");
     } catch (error) {
-      setSaveError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Story could not be saved. Check the server and try again.",
-      );
+          : "Story could not be saved. Check the server and try again.";
+      setSaveError(message);
+      toast.error(message);
     } finally {
       setIsSaving(false);
       saveInFlight.current = false;
@@ -467,7 +479,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           />
         </div>
 
-        <div className="border-2 border-dashed border-black p-5">
+        <div className="border-2 border-dashed border-wheat-900 p-5">
           <label className="editor-label" htmlFor="featured-image">
             Story media
           </label>
@@ -480,7 +492,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           />
           <label
             htmlFor="featured-image"
-            className="mt-3 inline-flex cursor-pointer items-center justify-center border-2 border-black bg-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black"
+            className="mt-3 inline-flex cursor-pointer items-center justify-center border-2 border-wheat-900 bg-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black"
           >
             Choose file
           </label>
@@ -499,12 +511,12 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             </p>
           )}
           {uploadError && (
-            <p className="mt-3 border border-black bg-accent-soft p-3 text-sm font-bold text-ink">
+            <p className="mt-3 border border-wheat-900 bg-accent-soft p-3 text-sm font-bold text-ink">
               {uploadError}
             </p>
           )}
           {uploadedMedia && (
-            <div className="mt-3 overflow-hidden border border-black bg-white text-sm">
+            <div className="mt-3 overflow-hidden border border-wheat-900 bg-white text-sm">
               <div className="bg-black">
                 {uploadedMedia.mediaType === "image" ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -536,7 +548,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
       </div>
 
       <aside className="space-y-5">
-        <div className="border-2 border-black p-4">
+        <div className="border-2 border-wheat-900 p-4">
           <label htmlFor="content-type" className="editor-label">
             Story type
           </label>
@@ -648,7 +660,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             type="button"
             onClick={generateUrduInput}
             disabled={isTransliterating}
-            className="border-2 border-black bg-white px-3 py-2 text-sm font-black uppercase tracking-[0.12em] hover:bg-black hover:text-white disabled:cursor-wait disabled:opacity-60"
+            className="border-2 border-wheat-900 cursor-pointer px-3 py-2 text-sm font-black uppercase tracking-[0.12em] hover:bg-black hover:text-black hover:bg-white disabled:cursor-wait disabled:opacity-60"
           >
             {isTransliterating ? "Converting..." : "Generate Urdu Input"}
           </button>
@@ -656,7 +668,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             type="button"
             onClick={() => saveStory("draft")}
             disabled={isSaving || isUploading}
-            className="border-2 border-black px-3 py-2 text-sm font-black uppercase tracking-[0.12em]"
+            className="border-2 border-wheat-900 cursor-pointer px-3 py-2 text-sm font-black uppercase tracking-[0.12em] hover:bg-black hover:text-black hover:bg-white disabled:cursor-wait disabled:opacity-60"
           >
             {isSaving ? "Saving..." : isEditing ? "Update Draft" : "Save Draft"}
           </button>
@@ -664,23 +676,23 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             type="button"
             disabled={isUploading || isSaving}
             onClick={() => saveStory(status === "draft" ? "published" : status)}
-            className="border-2 border-black bg-black px-3 py-2 text-sm font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60"
+            className="border-2 border-wheat-900 cursor-pointer bg-black px-3 py-2 text-sm font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60"
           >
             {isSaving ? "Saving..." : primaryActionLabel}
           </button>
           {saveError && (
-            <p className="border border-black bg-accent-soft p-3 text-sm font-bold">
+            <p className="border border-wheat-900 bg-accent-soft p-3 text-sm font-bold">
               {saveError}
             </p>
           )}
           {saveMessage && (
-            <p className="border border-black bg-white p-3 text-sm font-bold">
+            <p className="border border-wheat-900 bg-white p-3 text-sm font-bold">
               {saveMessage}
             </p>
           )}
         </div>
 
-        <section className="border-2 border-black p-4">
+        <section className="border-2 border-wheat-900 p-4">
           <p className="editor-label">SEO preview</p>
           <div {...writingMode} className={`${writingMode.className} mt-3`}>
             <p className="font-serif-display text-xl font-black">

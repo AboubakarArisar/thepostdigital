@@ -21,7 +21,7 @@ export default async function EditorPage({
     <main className="grid min-h-screen md:grid-cols-[16rem_1fr]">
       <AdminSidebar />
       <section className="p-4 md:p-6">
-        <div className="mb-6 border-b-4 border-black pb-4">
+        <div className="mb-6 border-b-4 border-wheat-900 pb-4">
           <p className="text-xs font-black uppercase tracking-[0.16em]">
             Compose
           </p>

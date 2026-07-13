@@ -43,7 +43,7 @@ export default async function AdminDashboard() {
               <h1 className="font-serif-display mt-2 text-5xl font-black leading-none">
                 Dashboard
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-700">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
                 Review stories, publish approved work, and manage access requests from one place.
               </p>
             </div>

@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import toast from "react-hot-toast";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { formatDate } from "@/lib/format";
 import type { AdminUser } from "@/lib/types";
 
@@ -15,6 +17,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
   const router = useRouter();
   const [activeEmail, setActiveEmail] = useState("");
   const [error, setError] = useState("");
+  const [pendingRemoval, setPendingRemoval] = useState<AdminUser | null>(null);
   const pendingUsers = users.filter((user) => user.status === "pending");
   // Rejected accounts are hidden from the list — only pending/approved show.
   const visibleUsers = users.filter((user) => user.status !== "rejected");
@@ -29,20 +32,22 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
     });
 
     if (response.ok) {
+      toast.success(
+        status === "approved" ? "Admin access approved." : "Request rejected.",
+      );
       router.refresh();
     } else {
       const result = (await response.json()) as { error?: string };
-      setError(result.error || "Could not update this admin request.");
+      const message = result.error || "Could not update this admin request.";
+      setError(message);
+      toast.error(message);
     }
     setActiveEmail("");
   }
 
-  async function removeAccount(email: string, name: string) {
-    const shouldRemove = window.confirm(
-      `Remove ${name}'s admin account? They will no longer be able to sign in.`,
-    );
-
-    if (!shouldRemove) return;
+  async function confirmRemoval() {
+    if (!pendingRemoval) return;
+    const email = pendingRemoval.email;
 
     setError("");
     setActiveEmail(email);
@@ -51,21 +56,25 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
     });
 
     if (response.ok) {
+      setPendingRemoval(null);
+      toast.success("Admin account removed.");
       router.refresh();
     } else {
       const result = (await response.json()) as { error?: string };
-      setError(result.error || "Could not remove this admin account.");
+      const message = result.error || "Could not remove this admin account.";
+      setError(message);
+      toast.error(message);
     }
     setActiveEmail("");
   }
 
   return (
-    <div className="border-2 border-black">
-      <div className="border-b-2 border-black bg-black px-3 py-3 text-white">
+    <div className="border-2 border-wheat-900">
+      <div className="border-b-2 border-wheat-900 bg-elevated px-3 py-3 text-ink">
         <p className="text-sm font-black uppercase tracking-[0.16em]">
           Admin account verification
         </p>
-        <p className="mt-1 text-xs text-zinc-300">
+        <p className="mt-1 text-xs text-muted">
           {pendingUsers.length === 0
             ? "No pending access requests right now."
             : `${pendingUsers.length} pending request${
@@ -74,17 +83,17 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
         </p>
       </div>
       {error && (
-        <p className="border-b-2 border-black bg-accent-soft p-3 text-sm font-bold" role="alert">
+        <p className="border-b-2 border-wheat-900 bg-accent-soft p-3 text-sm font-bold" role="alert">
           {error}
         </p>
       )}
       <div className="overflow-x-auto">
       <table className="w-full min-w-[680px] border-collapse text-left text-sm">
-        <caption className="border-b-2 border-black bg-black px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-white">
+        <caption className="border-b-2 border-wheat-900 bg-elevated px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-ink">
           Account list
         </caption>
         <thead>
-          <tr className="border-b-2 border-black text-xs uppercase tracking-[0.14em]">
+          <tr className="border-b-2 border-wheat-900 text-xs uppercase tracking-[0.14em]">
             <th className="p-3">Name</th>
             <th className="p-3">Email</th>
             <th className="p-3">Role</th>
@@ -93,7 +102,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
             <th className="p-3">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-black">
+        <tbody className="divide-y divide-wheat-900">
           {visibleUsers.length === 0 ? (
             <tr>
               <td className="p-6 text-center font-bold text-zinc-600" colSpan={6}>
@@ -108,7 +117,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
               <td className="p-3 capitalize">{user.role.replace("_", " ")}</td>
               <td className="p-3">
                 <span
-                  className={`border border-black px-2 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusClass[user.status]}`}
+                  className={`border border-wheat-900 px-2 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusClass[user.status]}`}
                 >
                   {user.status}
                 </span>
@@ -118,7 +127,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                 {user.role === "admin" && user.status === "pending" ? (
                   <div className="flex flex-wrap gap-2">
                     <button
-                      className="border border-black bg-black px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60"
+                      className="border border-wheat-900 bg-black px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60"
                       type="button"
                       disabled={activeEmail === user.email}
                       onClick={() => verify(user.email, "approved")}
@@ -126,7 +135,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                       {activeEmail === user.email ? "Saving" : "Approve"}
                     </button>
                     <button
-                      className="border border-black px-3 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-accent-soft disabled:cursor-wait disabled:opacity-60"
+                      className="border border-wheat-900 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-accent-soft disabled:cursor-wait disabled:opacity-60"
                       type="button"
                       disabled={activeEmail === user.email}
                       onClick={() => verify(user.email, "rejected")}
@@ -136,10 +145,10 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                   </div>
                 ) : user.role === "admin" && user.status === "approved" ? (
                   <button
-                    className="border border-black px-3 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-accent hover:text-white disabled:cursor-wait disabled:opacity-60"
+                    className="border border-wheat-900 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-accent hover:text-white disabled:cursor-wait disabled:opacity-60"
                     type="button"
                     disabled={activeEmail === user.email}
-                    onClick={() => removeAccount(user.email, user.name)}
+                    onClick={() => setPendingRemoval(user)}
                   >
                     {activeEmail === user.email ? "Removing" : "Remove"}
                   </button>
@@ -153,6 +162,22 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
         </tbody>
       </table>
       </div>
+
+      <ConfirmModal
+        open={pendingRemoval !== null}
+        title="Remove admin"
+        message={
+          pendingRemoval
+            ? `Remove ${pendingRemoval.name}'s admin account? They will no longer be able to sign in.`
+            : ""
+        }
+        confirmLabel="Remove"
+        busy={activeEmail !== "" && pendingRemoval?.email === activeEmail}
+        onConfirm={confirmRemoval}
+        onCancel={() => {
+          if (activeEmail === "") setPendingRemoval(null);
+        }}
+      />
     </div>
   );
 }

@@ -75,7 +75,7 @@ export function AdminSignupForm() {
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="e.g. Ayesha Khan"
-          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
+          className="w-full border border-wheat-900 bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-wheat-900"
         />
       </div>
       <div>
@@ -90,7 +90,7 @@ export function AdminSignupForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="name@newsroom.com"
-          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
+          className="w-full border border-wheat-900 bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-wheat-900"
         />
       </div>
       <div>
@@ -106,7 +106,7 @@ export function AdminSignupForm() {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Minimum 8 characters"
-          className="w-full border border-black bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-black"
+          className="w-full border border-wheat-900 bg-paper px-3 py-3 outline-none focus:ring-2 focus:ring-wheat-900"
         />
         <ul className="mt-3 space-y-2 text-xs leading-5 text-zinc-600">
           {passwordRules.map((rule) => (
@@ -120,19 +120,19 @@ export function AdminSignupForm() {
         </ul>
       </div>
       {error && (
-        <p className="border border-black bg-accent-soft p-3 text-sm font-bold" role="alert">
+        <p className="border border-wheat-900 bg-accent-soft p-3 text-sm font-bold" role="alert">
           {error}
         </p>
       )}
       {message && (
-        <p className="border border-black bg-white p-3 text-sm font-bold" role="status">
+        <p className="border border-wheat-900 bg-white p-3 text-sm font-bold" role="status">
           {message}
         </p>
       )}
       <button
         type="submit"
         disabled={isSubmitting || !canSubmit}
-        className="block w-full border-2 border-black px-3 py-3 text-center text-sm font-black uppercase tracking-[0.14em] hover:bg-black hover:text-white disabled:cursor-wait disabled:opacity-60"
+        className="block w-full border-2 border-wheat-900 px-3 py-3 text-center text-sm font-black uppercase tracking-[0.14em] hover:bg-black hover:text-white disabled:cursor-wait disabled:opacity-60"
       >
         {isSubmitting ? "Sending..." : "Submit request"}
       </button>

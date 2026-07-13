@@ -12,6 +12,8 @@
   --inverse: #ffffff;
   --accent: #b1182a;
   --accent-soft: #f3dfe2;
+  /* Admin border colour — deeper wheat so it reads on light backgrounds. */
+  --wheat: #9c7a3c;
 }
 
 @theme inline {
@@ -27,6 +29,8 @@
   --color-inverse: var(--inverse);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-wheat: var(--wheat);
+  --color-wheat-900: var(--wheat);
   --font-sans: "Inter", "Arial", sans-serif;
   --font-serif-display: "Newsreader", "Iowan Old Style", "Georgia", serif;
   --font-urdu: "Noto Nastaliq Urdu", "Noto Naskh Arabic", "Jameel Noori Nastaleeq", serif;
@@ -44,6 +48,8 @@ html.dark {
   --inverse: #ddd8cf;
   --accent: #d04651;
   --accent-soft: #2d171a;
+  /* Light wheat so admin borders stay visible against dark surfaces. */
+  --wheat: #e7d5a8;
 }
 
 body {

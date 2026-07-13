@@ -10,9 +10,9 @@ export default async function LoginPage() {
 
   return (
     <main className="grid min-h-screen place-items-center px-4 py-10">
-      <section className="w-full max-w-5xl border-4 border-black bg-paper">
+      <section className="w-full max-w-5xl border-4 border-wheat-900 bg-paper">
         <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="border-b-4 border-black p-6 lg:border-b-0 lg:border-r-4">
+          <div className="border-b-4 border-wheat-900 p-6 lg:border-b-0 lg:border-r-4">
             <Link href="/" aria-label="The Post Digital home" className="block w-fit">
               <SiteLogo className="h-12 w-64" priority />
             </Link>
@@ -28,7 +28,7 @@ export default async function LoginPage() {
 
           <div className="bg-elevated p-6">
             <AdminSignupForm />
-            <div className="mt-6 border-t-2 border-black pt-5">
+            <div className="mt-6 border-t-2 border-wheat-900 pt-5">
               <p className="text-xs font-black uppercase tracking-[0.16em]">
                 How approval works
               </p>

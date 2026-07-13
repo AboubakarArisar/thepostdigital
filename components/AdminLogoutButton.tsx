@@ -13,7 +13,7 @@ export function AdminLogoutButton() {
 
   return (
     <button
-      className="block w-full border-t border-white/40 px-4 py-3 text-left text-sm font-black uppercase tracking-[0.12em] hover:bg-white hover:text-black md:border-t-0"
+      className="block w-full border-t border-wheat-900 px-4 py-3 text-left text-sm font-black uppercase tracking-[0.12em] hover:bg-accent hover:text-white md:border-t-0"
       type="button"
       onClick={logout}
     >
