@@ -14,8 +14,8 @@ export function AudiencePanel({ analytics }: { analytics: AnalyticsSummary }) {
   const peak = Math.max(1, ...analytics.last7.map((day) => day.count));
 
   return (
-    <section className="border-2 border-black p-4">
-      <div className="flex flex-wrap items-end justify-between gap-2 border-b border-black pb-3">
+    <section className="border-2 border-wheat-900 rounded-xl p-4">
+      <div className="flex flex-wrap items-end justify-between gap-2 border-b border-wheat-900 pb-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-600">
             Audience
@@ -28,7 +28,7 @@ export function AudiencePanel({ analytics }: { analytics: AnalyticsSummary }) {
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div className="border border-black p-3">
+        <div className="border border-wheat-900 rounded-xl p-3">
           <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-600">
             Total page views
           </p>
@@ -36,7 +36,7 @@ export function AudiencePanel({ analytics }: { analytics: AnalyticsSummary }) {
             {formatCount(analytics.totalViews)}
           </p>
         </div>
-        <div className="border border-black p-3">
+        <div className="border border-wheat-900 rounded-xl p-3">
           <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-600">
             Unique visitors
           </p>
@@ -44,7 +44,7 @@ export function AudiencePanel({ analytics }: { analytics: AnalyticsSummary }) {
             {formatCount(analytics.uniqueVisitors)}
           </p>
         </div>
-        <div className="border border-black p-3">
+        <div className="border border-wheat-900 rounded-xl p-3">
           <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-600">
             Views today
           </p>

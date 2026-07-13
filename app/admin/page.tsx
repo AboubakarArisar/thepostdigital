@@ -34,7 +34,7 @@ export default async function AdminDashboard() {
     <main className="grid min-h-screen md:grid-cols-[16rem_1fr]">
       <AdminSidebar />
       <section className="p-4 md:p-6">
-        <div className="border-b-4 border-black pb-4">
+        <div className="border-b-4 border-wheat-900 pb-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em]">
@@ -50,7 +50,7 @@ export default async function AdminDashboard() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/admin/editor"
-                className="border-2 border-black bg-black px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-white hover:bg-white hover:text-black"
+                className="border-2 border-wheat-900 rounded-xl transition-2s bg-black px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-white hover:bg-white hover:text-black"
               >
                 New story
               </Link>

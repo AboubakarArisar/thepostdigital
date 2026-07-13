@@ -199,7 +199,7 @@ export function ArticleTable({
             type="button"
             onClick={() => setPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className="border-2 cursor-pointer border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-yellow-400 disabled:pointer-events-none transition-0.2s disabled:opacity-40"
+            className="border-2 cursor-pointer border-wheat-900 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-yellow-400 disabled:pointer-events-none transition-0.2s disabled:opacity-40"
           >
             Prev
           </button>
@@ -210,7 +210,7 @@ export function ArticleTable({
             type="button"
             onClick={() => setPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="border-2 cursor-pointer border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-yellow-400 disabled:pointer-events-none transition-0.2s disabled:opacity-40"
+            className="border-2 cursor-pointer border-wheat-900 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-yellow-400 disabled:pointer-events-none transition-0.2s disabled:opacity-40"
           >
             Next
           </button>
