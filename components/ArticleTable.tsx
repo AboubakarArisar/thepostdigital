@@ -11,9 +11,9 @@ const ARTICLES_PER_PAGE = 10;
 const statusClass = {
   draft: "bg-white text-black",
   pending_approval: "bg-accent-soft text-black",
-  published: "bg-black text-white",
+  published: "bg-black text-yellow-400",
   scheduled: "bg-zinc-200 text-black",
-  archived: "bg-zinc-700 text-white",
+  archived: "bg-zinc-700 text-yellow-400",
 };
 
 function articleApiRoute(slug: string) {
@@ -108,7 +108,7 @@ export function ArticleTable({
     <div className="border-2 border-black">
       <div className="overflow-x-auto">
       <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-        <caption className="border-b-2 border-black bg-black px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-white">
+        <caption className="border-b-2 border-black bg-black px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-yellow-400">
           {title}
         </caption>
         <thead>
@@ -199,7 +199,7 @@ export function ArticleTable({
             type="button"
             onClick={() => setPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className="border-2 border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-white disabled:pointer-events-none disabled:opacity-40"
+            className="border-2 cursor-pointer border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-yellow-400 disabled:pointer-events-none transition-0.2s disabled:opacity-40"
           >
             Prev
           </button>
@@ -210,7 +210,7 @@ export function ArticleTable({
             type="button"
             onClick={() => setPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="border-2 border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-white disabled:pointer-events-none disabled:opacity-40"
+            className="border-2 cursor-pointer border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] hover:bg-black hover:text-yellow-400 disabled:pointer-events-none transition-0.2s disabled:opacity-40"
           >
             Next
           </button>
