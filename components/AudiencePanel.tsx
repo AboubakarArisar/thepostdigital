@@ -5,9 +5,12 @@ function formatCount(value: number) {
 }
 
 function weekdayLabel(date: string) {
-  return new Intl.DateTimeFormat("en-PK", { weekday: "short" }).format(
-    new Date(`${date}T00:00:00`),
-  );
+  // The date is a Pakistani calendar day (YYYY-MM-DD); anchor it to PKT noon so
+  // the weekday matches the bucket regardless of the server's timezone.
+  return new Intl.DateTimeFormat("en-PK", {
+    weekday: "short",
+    timeZone: "Asia/Karachi",
+  }).format(new Date(`${date}T12:00:00+05:00`));
 }
 
 export function AudiencePanel({ analytics }: { analytics: AnalyticsSummary }) {
