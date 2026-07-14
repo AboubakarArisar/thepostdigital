@@ -1,4 +1,5 @@
 import type { AnalyticsSummary } from "@/lib/analytics";
+import { RefreshViewsButton } from "./RefreshViewsButton";
 
 function formatCount(value: number) {
   return new Intl.NumberFormat("en-PK").format(value);
@@ -27,7 +28,10 @@ export function AudiencePanel({ analytics }: { analytics: AnalyticsSummary }) {
             Visitor traffic
           </h2>
         </div>
-        <p className="text-xs font-bold text-muted">Last 7 days on the public site</p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs font-bold text-muted">Last 7 days on the public site</p>
+          <RefreshViewsButton />
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
