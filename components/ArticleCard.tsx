@@ -56,6 +56,12 @@ export function ArticleCard({
         dir={directionFor(article.language)}
         className={`group flex gap-3 border-b border-soft-rule pb-5 sm:flex-col sm:gap-0 ${articleTextClass(article)}`}
       >
+        <Link
+          href={articleHref}
+          className="block h-20 w-28 shrink-0 overflow-hidden bg-elevated sm:mb-3 sm:h-auto sm:w-full"
+        >
+          <ArticleImage article={article} fit="cover" className="sm:h-auto" />
+        </Link>
         <div className="min-w-0 flex-1 sm:flex-none sm:order-last">
           <h3 className="text-lg font-black leading-snug text-ink transition-colors group-hover:text-accent sm:text-xl">
             <Link href={articleHref} className="hover:underline">
@@ -66,12 +72,6 @@ export function ArticleCard({
             {formatDate(article.publishedAt)}
           </p>
         </div>
-        <Link
-          href={articleHref}
-          className="block h-20 w-28 shrink-0 overflow-hidden bg-elevated sm:mb-3 sm:h-auto sm:w-full"
-        >
-          <ArticleImage article={article} fit="cover" className="sm:h-auto" />
-        </Link>
       </article>
     );
   }
