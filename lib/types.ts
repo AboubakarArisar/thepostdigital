@@ -31,6 +31,7 @@ export type Article = {
   views: number;
   isBreaking: boolean;
   isFeatured: boolean;
+  priority?: number;
   createdBy?: string;
   approvedBy?: string;
   approvedAt?: string;

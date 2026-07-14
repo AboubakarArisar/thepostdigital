@@ -140,6 +140,9 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
   );
   const [author, setAuthor] = useState(article?.author || "News Desk");
   const [tags, setTags] = useState(article?.tags.join(", ") || "");
+  const [priority, setPriority] = useState(
+    String(Math.min(2, Math.max(0, article?.priority ?? 0))),
+  );
   const [fields, setFields] = useState<TextFields>({
     title: article?.title || "",
     excerpt: article?.excerpt || "",
@@ -354,6 +357,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           views: article?.views || 0,
           isBreaking: article?.isBreaking || false,
           isFeatured: article?.isFeatured || false,
+          priority: Number.parseInt(priority, 10) || 0,
         }),
       });
       const result = await readJsonResponse<{
@@ -635,6 +639,25 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             className={inputClass}
             placeholder="News Desk"
           />
+
+          <label htmlFor="priority" className="editor-label mt-4">
+            Homepage placement
+          </label>
+          <select
+            id="priority"
+            value={priority}
+            onChange={(event) => setPriority(event.target.value)}
+            className={inputClass}
+          >
+            <option value="0">Normal story</option>
+            <option value="1">Important — push up</option>
+            <option value="2">Top story — show as the big lead</option>
+          </select>
+          <p className="mt-1 text-xs text-muted">
+            Pick “Top story” for the most important news (e.g. a major conflict)
+            so it shows as the big headline on the homepage, even if you post
+            something newer afterwards.
+          </p>
 
           <label htmlFor="status" className="editor-label mt-4">
             Status

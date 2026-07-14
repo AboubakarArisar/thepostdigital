@@ -164,10 +164,15 @@ export default async function Home({
     );
   }
 
-  const latest = [...published]
-    .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt))
-  const lead = latest.find((article) => article.isFeatured) ?? latest[0];
-  const secondary = latest.filter((article) => article.slug !== lead.slug);
+  // Highest priority wins the lead slot; ties (incl. the default 0) fall back
+  // to newest-first, so untouched stories behave exactly as before.
+  const ranked = [...published].sort(
+    (a, b) =>
+      (b.priority ?? 0) - (a.priority ?? 0) ||
+      +new Date(b.publishedAt) - +new Date(a.publishedAt),
+  );
+  const lead = ranked[0];
+  const secondary = ranked.slice(1);
   const heroCards = secondary.slice(0, 4);
 
   // Everything past the hero is paginated. The hero (lead + 4 cards) only

@@ -115,6 +115,56 @@ export function ArticleTable({
     }
   }
 
+  // Set (or clear) the homepage "Top story" straight from the list. Lead is
+  // per-language, so featuring one demotes any other top in the same language.
+  async function toggleFeatured(article: Article) {
+    const makeTop = (article.priority ?? 0) < 2;
+    const demote = makeTop
+      ? items.filter(
+          (item) =>
+            item.language === article.language &&
+            item.slug !== article.slug &&
+            (item.priority ?? 0) >= 2,
+        )
+      : [];
+
+    try {
+      // Sequential: each PUT rewrites the whole store, so avoid racing writes.
+      for (const item of demote) {
+        await fetch(articleApiRoute(item.slug), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...item, priority: 0 }),
+        });
+      }
+
+      const response = await fetch(articleApiRoute(article.slug), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...article, priority: makeTop ? 2 : 0 }),
+      });
+
+      if (!response.ok) {
+        toast.error("Could not update the top story.");
+        return;
+      }
+
+      setItems((current) =>
+        current.map((item) => {
+          if (item.slug === article.slug)
+            return { ...item, priority: makeTop ? 2 : 0 };
+          if (makeTop && demote.some((d) => d.slug === item.slug))
+            return { ...item, priority: 0 };
+          return item;
+        }),
+      );
+      toast.success(makeTop ? "Set as the top story." : "Removed from top story.");
+      router.refresh();
+    } catch {
+      toast.error("Could not update the top story.");
+    }
+  }
+
   async function archiveStory(article: Article) {
     const response = await fetch(articleApiRoute(article.slug), {
       method: "PUT",
@@ -163,7 +213,17 @@ export function ArticleTable({
           ) : (
             pageArticles.map((article) => (
             <tr key={article.slug}>
-              <td className="max-w-xs p-3 font-bold">{article.title}</td>
+              <td className="max-w-xs p-3 font-bold">
+                {(article.priority ?? 0) >= 2 && (
+                  <span
+                    className="mr-1 text-accent"
+                    title="Top story on the homepage"
+                  >
+                    ★
+                  </span>
+                )}
+                {article.title}
+              </td>
               <td className="p-3">{article.category}</td>
               <td className="p-3 capitalize">{article.contentType}</td>
               <td className="p-3 capitalize">{article.mediaType}</td>
@@ -198,6 +258,13 @@ export function ArticleTable({
                         ? "Draft"
                         : "Approve"
                       : "Submit"}
+                  </button>
+                  <button
+                    className="cursor-pointer font-bold underline"
+                    type="button"
+                    onClick={() => toggleFeatured(article)}
+                  >
+                    {(article.priority ?? 0) >= 2 ? "Unfeature" : "Feature"}
                   </button>
                   {article.status !== "archived" && (
                     <button
