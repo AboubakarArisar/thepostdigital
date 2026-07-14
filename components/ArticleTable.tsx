@@ -40,6 +40,7 @@ export function ArticleTable({
   const [page, setPage] = useState(1);
   const [pendingDelete, setPendingDelete] = useState<Article | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [featuringSlug, setFeaturingSlug] = useState<string | null>(null);
 
   // Re-sync when the server sends a fresh list (e.g. after router.refresh()).
   useEffect(() => {
@@ -118,6 +119,8 @@ export function ArticleTable({
   // Set (or clear) the homepage "Top story" straight from the list. Lead is
   // per-language, so featuring one demotes any other top in the same language.
   async function toggleFeatured(article: Article) {
+    if (featuringSlug) return;
+    setFeaturingSlug(article.slug);
     const makeTop = (article.priority ?? 0) < 2;
     const demote = makeTop
       ? items.filter(
@@ -162,6 +165,8 @@ export function ArticleTable({
       router.refresh();
     } catch {
       toast.error("Could not update the top story.");
+    } finally {
+      setFeaturingSlug(null);
     }
   }
 
@@ -260,11 +265,20 @@ export function ArticleTable({
                       : "Submit"}
                   </button>
                   <button
-                    className="cursor-pointer font-bold underline"
+                    className={`cursor-pointer rounded-md border px-2 py-0.5 text-xs font-black uppercase tracking-[0.08em] transition-colors disabled:opacity-50 ${
+                      (article.priority ?? 0) >= 2
+                        ? "border-accent bg-accent text-white"
+                        : "border-wheat-900 hover:bg-accent hover:text-white"
+                    }`}
                     type="button"
+                    disabled={featuringSlug !== null}
                     onClick={() => toggleFeatured(article)}
                   >
-                    {(article.priority ?? 0) >= 2 ? "Unfeature" : "Feature"}
+                    {featuringSlug === article.slug
+                      ? "Saving…"
+                      : (article.priority ?? 0) >= 2
+                        ? "★ Featured"
+                        : "Feature"}
                   </button>
                   {article.status !== "archived" && (
                     <button
