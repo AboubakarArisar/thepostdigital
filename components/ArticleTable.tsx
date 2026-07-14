@@ -122,25 +122,9 @@ export function ArticleTable({
     if (featuringSlug) return;
     setFeaturingSlug(article.slug);
     const makeTop = (article.priority ?? 0) < 2;
-    const demote = makeTop
-      ? items.filter(
-          (item) =>
-            item.language === article.language &&
-            item.slug !== article.slug &&
-            (item.priority ?? 0) >= 2,
-        )
-      : [];
 
     try {
-      // Sequential: each PUT rewrites the whole store, so avoid racing writes.
-      for (const item of demote) {
-        await fetch(articleApiRoute(item.slug), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...item, priority: 0 }),
-        });
-      }
-
+      // The server demotes any other top in this language (enforceSingleTop).
       const response = await fetch(articleApiRoute(article.slug), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -152,11 +136,16 @@ export function ArticleTable({
         return;
       }
 
+      // Mirror the server's single-top rule locally for an instant ★ move.
       setItems((current) =>
         current.map((item) => {
           if (item.slug === article.slug)
             return { ...item, priority: makeTop ? 2 : 0 };
-          if (makeTop && demote.some((d) => d.slug === item.slug))
+          if (
+            makeTop &&
+            item.language === article.language &&
+            (item.priority ?? 0) >= 2
+          )
             return { ...item, priority: 0 };
           return item;
         }),
@@ -277,7 +266,7 @@ export function ArticleTable({
                     {featuringSlug === article.slug
                       ? "Saving…"
                       : (article.priority ?? 0) >= 2
-                        ? "★ Featured"
+                        ? "Unfeature"
                         : "Feature"}
                   </button>
                   {article.status !== "archived" && (

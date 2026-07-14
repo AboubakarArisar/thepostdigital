@@ -383,8 +383,21 @@ export async function saveArticle(article: Article) {
   }
 
   const savedArticle = { ...article, slug };
-  await writeArticles([savedArticle, ...articles]);
+  await writeArticles(enforceSingleTop([savedArticle, ...articles], savedArticle));
   return savedArticle;
+}
+
+// A story can only be the "Top story" (priority >= 2) lead of its own language.
+// Enforced here so neither the editor nor the dashboard button can leave two.
+function enforceSingleTop(articles: Article[], featured: Article) {
+  if ((featured.priority ?? 0) < 2) return articles;
+  return articles.map((item) =>
+    item.slug !== featured.slug &&
+    item.language === featured.language &&
+    (item.priority ?? 0) >= 2
+      ? { ...item, priority: 0 }
+      : item,
+  );
 }
 
 export async function updateArticle(slug: string, article: Article) {
@@ -405,7 +418,7 @@ export async function updateArticle(slug: string, article: Article) {
   const updatedArticle = { ...article, slug: nextSlug };
   const nextArticles = [...articles];
   nextArticles[index] = updatedArticle;
-  await writeArticles(nextArticles);
+  await writeArticles(enforceSingleTop(nextArticles, updatedArticle));
   return updatedArticle;
 }
 
