@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { ToasterProvider } from "@/components/ToasterProvider";
 import { VisitorTracker } from "@/components/VisitorTracker";
 import { siteConfig } from "@/lib/site";
@@ -116,6 +117,7 @@ export default function RootLayout({
         {children}
         <ToasterProvider />
         <VisitorTracker />
+        <Analytics />
       </body>
     </html>
   );
