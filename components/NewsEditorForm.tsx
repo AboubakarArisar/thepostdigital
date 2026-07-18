@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { deskCategories, formatCategories } from "@/lib/categories";
+import { categories } from "@/lib/categories";
 import type {
   AdminRole,
   Article,
@@ -127,7 +127,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
   const [contentType, setContentType] = useState<ArticleContentType>(
     article?.contentType || "news",
   );
-  const [category, setCategory] = useState(article?.category || "Politics");
+  const [category, setCategory] = useState(article?.category || "Pakistan");
   const [googleUrduInput, setGoogleUrduInput] = useState(true);
   const [isTransliterating, setIsTransliterating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -579,16 +579,9 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             onChange={(event) => setCategory(event.target.value)}
             className={inputClass}
           >
-            <optgroup label="Formats">
-              {formatCategories.map((item) => (
-                <option key={item.slug}>{item.name}</option>
-              ))}
-            </optgroup>
-            <optgroup label="Desks">
-              {deskCategories.map((item) => (
-                <option key={item.slug}>{item.name}</option>
-              ))}
-            </optgroup>
+            {categories.map((item) => (
+              <option key={item.slug}>{item.name}</option>
+            ))}
           </select>
 
           <label htmlFor="language" className="editor-label mt-4">
