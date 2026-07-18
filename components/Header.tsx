@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAdminSession } from "@/lib/auth";
 import { categories } from "@/lib/categories";
 import { getPublishedArticles } from "@/lib/data";
+import { formatToday } from "@/lib/format";
 import type { Language } from "@/lib/types";
 import { SiteLogo } from "./SiteLogo";
 import { ThemeToggle } from "./ThemeToggle";
@@ -22,13 +23,27 @@ export async function Header({ language = "en" }: { language?: Language }) {
 
   return (
     <header className="bg-paper">
-      <div className="mx-auto max-w-7xl px-4 py-5">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <div aria-hidden="true" />
-          <Link href="/" aria-label="The Post Digital home" className="block w-fit">
-            <SiteLogo className="h-12 w-[min(70vw,20rem)] sm:h-14 sm:w-[24rem]" priority />
-          </Link>
-          <div className="flex items-center justify-end gap-2">
+      {/* Utility strip — language + theme on the left, date pinned to the right
+          for both languages. Flex-wraps on small screens so it never overflows. */}
+      <div className="border-b border-soft-rule bg-elevated">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-1.5">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-0.5 rounded-full border border-soft-rule bg-paper p-0.5 text-[11px] font-black">
+              <Link
+                href="/?language=en"
+                aria-current={language === "en" ? "page" : undefined}
+                className={`inline-flex h-6 w-11 items-center justify-center rounded-full leading-none ${language === "en" ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+              >
+                EN
+              </Link>
+              <Link
+                href="/"
+                aria-current={language === "ur" ? "page" : undefined}
+                className={`inline-flex h-6 w-11 items-center justify-center rounded-full font-urdu leading-none ${language === "ur" ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+              >
+                اردو
+              </Link>
+            </div>
             {adminSession && (
               <Link
                 href="/admin"
@@ -39,7 +54,19 @@ export async function Header({ language = "en" }: { language?: Language }) {
             )}
             <ThemeToggle />
           </div>
+          <span
+            dir={language === "ur" ? "rtl" : "ltr"}
+            className={`text-[11px] font-bold text-muted sm:text-xs ${language === "ur" ? "font-urdu" : ""}`}
+          >
+            {formatToday(language)}
+          </span>
         </div>
+      </div>
+
+      <div className="mx-auto flex max-w-7xl justify-center px-4 py-5">
+        <Link href="/" aria-label="The Post Digital home" className="block w-fit">
+          <SiteLogo className="h-12 w-[min(70vw,20rem)] sm:h-14 sm:w-[24rem]" priority />
+        </Link>
       </div>
 
       {recentArticles.length > 0 && (
@@ -51,7 +78,7 @@ export async function Header({ language = "en" }: { language?: Language }) {
             <div className="min-w-0 flex-1 overflow-hidden">
               <div
                 className={`recent-news-marquee flex w-max gap-8 py-2 font-bold ${
-                  language === "en" ? "recent-news-marquee--reverse" : ""
+                  language === "ur" ? "recent-news-marquee--reverse" : ""
                 }`}
               >
                 {[...recentArticles, ...recentArticles].map((article, index) => (

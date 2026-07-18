@@ -1,5 +1,19 @@
 import type { Article, Language } from "./types";
 
+// Today's date in the reader's language, e.g. "Friday, 18 July 2026" (en) or
+// "جمعہ، 18 جولائی، 2026" (ur). Latin digits so both languages match the
+// site's numeric style. Pinned to Pakistan time.
+export function formatToday(language: Language) {
+  return new Intl.DateTimeFormat(language === "ur" ? "ur-PK" : "en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    numberingSystem: "latn",
+    timeZone: "Asia/Karachi",
+  }).format(new Date());
+}
+
 export function directionFor(language: Language) {
   return language === "ur" ? "rtl" : "ltr";
 }

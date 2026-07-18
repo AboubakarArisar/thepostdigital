@@ -225,23 +225,11 @@ export default async function Home({
     <>
       <Header language={selectedLanguage} />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
-        <section className="mb-8 border-b border-soft-rule pb-5 text-center">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.14em] text-accent">
-              {selectedLanguage === "ur" ? "تازہ" : "Latest"}
-            </p>
-            <h1
-              dir={selectedLanguage === "ur" ? "rtl" : "ltr"}
-              className={`mt-1 text-3xl font-black leading-tight text-ink sm:text-5xl ${selectedLanguage === "ur" ? "font-urdu" : ""}`}
-            >
-              {selectedLanguage === "ur" ? "تازہ خبریں" : "Latest news"}
-            </h1>
-          </div>
-          <LanguageSwitcher
-            counts={languageCounts}
-            selectedLanguage={selectedLanguage}
-          />
-        </section>
+        <h1 className="sr-only">
+          {selectedLanguage === "ur" ? "تازہ خبریں" : "Latest news"}
+        </h1>
+        {/* Commercial slot — left empty for now; drop the ad embed here. */}
+        <section className="mb-8 min-h-[90px]" aria-hidden="true" />
 
         {showHero &&
           (heroCards.length > 0 ? (
