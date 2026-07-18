@@ -27,15 +27,14 @@ function pageWindow(current: number, total: number): Array<number | "gap"> {
   return out;
 }
 
-const edgeButton =
-  "inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-bold transition-colors";
-const edgeEnabled = "text-muted hover:bg-elevated hover:text-ink";
-const edgeDisabled = "pointer-events-none text-muted opacity-40";
-
-const numberChip =
-  "inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-colors";
-const numberInactive = "text-muted hover:bg-elevated hover:text-ink";
-const numberActive = "bg-accent text-white shadow-sm";
+// One joined pill: cells share borders (divide-x), the container clips them to
+// a rounded shape. Same markup for EN and UR — dir="rtl" just mirrors it.
+const cell =
+  "flex h-10 min-w-10 items-center justify-center px-2 text-sm font-bold transition-colors";
+const cellLink = "text-ink hover:bg-elevated";
+const cellActive = "bg-accent text-white";
+const cellDisabled = "pointer-events-none text-muted opacity-40";
+const cellGap = "text-muted";
 
 export function Pagination({
   currentPage,
@@ -50,84 +49,68 @@ export function Pagination({
   const hasNext = currentPage < totalPages;
   const items = pageWindow(currentPage, totalPages);
 
-  const prevArrow = isUrdu ? "→" : "←";
-  const nextArrow = isUrdu ? "←" : "→";
+  const prevChevron = isUrdu ? "›" : "‹";
+  const nextChevron = isUrdu ? "‹" : "›";
 
   return (
     <nav
       aria-label="Pagination"
       dir={isUrdu ? "rtl" : "ltr"}
-      className={`mt-12 flex flex-wrap items-center justify-center gap-1.5 border-t border-soft-rule pt-8 ${
-        isUrdu ? "font-urdu" : ""
-      }`}
+      className="mt-12 flex justify-center border-t border-soft-rule pt-8"
     >
-      {hasPrev ? (
-        <Link
-          href={createHref(currentPage - 1)}
-          rel="prev"
-          className={`${edgeButton} ${edgeEnabled}`}
-        >
-          <span aria-hidden="true">{prevArrow}</span>
-          <span className="hidden sm:inline">{isUrdu ? "پچھلا" : "Prev"}</span>
-        </Link>
-      ) : (
-        <span className={`${edgeButton} ${edgeDisabled}`} aria-disabled="true">
-          <span aria-hidden="true">{prevArrow}</span>
-          <span className="hidden sm:inline">{isUrdu ? "پچھلا" : "Prev"}</span>
-        </span>
-      )}
+      <div className="inline-flex divide-x divide-soft-rule overflow-hidden rounded-full border border-soft-rule bg-paper shadow-sm">
+        {hasPrev ? (
+          <Link
+            href={createHref(currentPage - 1)}
+            rel="prev"
+            aria-label={isUrdu ? "پچھلا" : "Previous page"}
+            className={`${cell} ${cellLink} text-base`}
+          >
+            {prevChevron}
+          </Link>
+        ) : (
+          <span
+            aria-disabled="true"
+            className={`${cell} ${cellDisabled} text-base`}
+          >
+            {prevChevron}
+          </span>
+        )}
 
-      {/* Numbered pages — tablet/desktop. */}
-      <div className="hidden items-center gap-1.5 sm:flex">
         {items.map((item, index) =>
           item === "gap" ? (
-            <span
-              key={`gap-${index}`}
-              className="inline-flex h-10 w-6 items-center justify-center text-muted"
-              aria-hidden="true"
-            >
+            <span key={`gap-${index}`} className={`${cell} ${cellGap}`} aria-hidden="true">
               …
             </span>
           ) : item === currentPage ? (
-            <span
-              key={item}
-              aria-current="page"
-              className={`${numberChip} ${numberActive}`}
-            >
+            <span key={item} aria-current="page" className={`${cell} ${cellActive}`}>
               {item}
             </span>
           ) : (
-            <Link
-              key={item}
-              href={createHref(item)}
-              className={`${numberChip} ${numberInactive}`}
-            >
+            <Link key={item} href={createHref(item)} className={`${cell} ${cellLink}`}>
               {item}
             </Link>
           ),
         )}
+
+        {hasNext ? (
+          <Link
+            href={createHref(currentPage + 1)}
+            rel="next"
+            aria-label={isUrdu ? "اگلا" : "Next page"}
+            className={`${cell} ${cellLink} text-base`}
+          >
+            {nextChevron}
+          </Link>
+        ) : (
+          <span
+            aria-disabled="true"
+            className={`${cell} ${cellDisabled} text-base`}
+          >
+            {nextChevron}
+          </span>
+        )}
       </div>
-
-      {/* Compact indicator — mobile. */}
-      <span className="px-3 text-sm font-bold text-muted sm:hidden">
-        {currentPage} / {totalPages}
-      </span>
-
-      {hasNext ? (
-        <Link
-          href={createHref(currentPage + 1)}
-          rel="next"
-          className={`${edgeButton} ${edgeEnabled}`}
-        >
-          <span className="hidden sm:inline">{isUrdu ? "اگلا" : "Next"}</span>
-          <span aria-hidden="true">{nextArrow}</span>
-        </Link>
-      ) : (
-        <span className={`${edgeButton} ${edgeDisabled}`} aria-disabled="true">
-          <span className="hidden sm:inline">{isUrdu ? "اگلا" : "Next"}</span>
-          <span aria-hidden="true">{nextArrow}</span>
-        </span>
-      )}
     </nav>
   );
 }

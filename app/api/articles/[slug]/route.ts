@@ -108,6 +108,7 @@ export async function PUT(
       views: article.views || 0,
       isBreaking: article.isBreaking || false,
       isFeatured: article.isFeatured || false,
+      priority: article.priority ?? existing?.priority ?? 0,
       createdBy: article.createdBy || existing?.createdBy || session.email,
       ...approval,
     });
