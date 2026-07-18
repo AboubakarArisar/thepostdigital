@@ -79,6 +79,22 @@ export function Footer() {
           </div>
         </div>
 
+        {/* Partner backlink — for the linked site's SEO, not ours. */}
+        <p className="border-b border-rule py-4 text-center text-xs leading-5 text-muted">
+          Partner:{" "}
+          <a
+            href="https://www.consulics.com"
+            target="_blank"
+            rel="noopener"
+            className="font-bold text-ink hover:underline"
+          >
+            Consulics | IRS Authorized Form 2290 &amp; HVUT E-File Provider
+          </a>{" "}
+          — Consulics is an IRS Authorized Form 2290 and Form 8849 e-file
+          provider helping truck owners, fleets, and tax professionals file HVUT
+          taxes online.
+        </p>
+
         <div className="flex flex-col gap-2 py-4 text-center text-[12px] uppercase tracking-[0.08em] text-muted sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <p>Karachi / Lahore / Islamabad</p>
           <p>Copyright 2026 The Post Digital</p>
