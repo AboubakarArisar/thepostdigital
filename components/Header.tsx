@@ -56,7 +56,7 @@ export async function Header({ language = "en" }: { language?: Language }) {
           </div>
           <span
             dir={language === "ur" ? "rtl" : "ltr"}
-            className={`text-[11px] font-bold text-muted sm:text-xs ${language === "ur" ? "font-urdu" : ""}`}
+            className={`text-sm font-bold text-muted sm:text-base ${language === "ur" ? "font-urdu" : ""}`}
           >
             {formatToday(language)}
           </span>
@@ -73,7 +73,7 @@ export async function Header({ language = "en" }: { language?: Language }) {
         <div className="border-y border-rule bg-chrome text-inverse">
           <div className="mx-auto flex max-w-7xl items-center overflow-hidden px-4 text-xs sm:text-sm">
             <p className="shrink-0 border-x border-rule px-3 py-2 font-black uppercase tracking-[0.16em]">
-              Latest
+              {language === "ur" ? "تازہ خبریں" : "Latest news"}
             </p>
             <div className="min-w-0 flex-1 overflow-hidden">
               <div

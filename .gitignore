@@ -48,6 +48,9 @@ next-env.d.ts
 .next
 CLAUDE.md
 
+/.agents*
+/.claude*
+
 *.md
 
 *.png
