@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { dbGetAnalytics, dbRecordVisit, hasDatabase } from "./db";
 
 const bundledDataPath = path.join(process.cwd(), "data");
 const runtimeDataPath =
@@ -187,6 +188,13 @@ async function writeStore(store: AnalyticsStore) {
 }
 
 export async function recordVisit({ isNewVisitor }: { isNewVisitor: boolean }) {
+  if (hasDatabase) {
+    // The day is still computed in Karachi time here, never by Postgres, so the
+    // rollover point is unchanged by the database's own timezone.
+    await dbRecordVisit(dayKey(new Date()), isNewVisitor);
+    return;
+  }
+
   const store = await readStore();
   const today = dayKey(new Date());
 
@@ -206,6 +214,21 @@ export async function recordVisit({ isNewVisitor }: { isNewVisitor: boolean }) {
 }
 
 export async function getAnalytics(): Promise<AnalyticsSummary> {
+  if (hasDatabase) {
+    const today = dayKey(new Date());
+    const week = lastNDays(7);
+    const { totalViews, uniqueVisitors, byDay } = await dbGetAnalytics([
+      ...new Set([...week, today]),
+    ]);
+
+    return {
+      totalViews,
+      uniqueVisitors,
+      todayViews: byDay.get(today) ?? 0,
+      last7: week.map((date) => ({ date, count: byDay.get(date) ?? 0 })),
+    };
+  }
+
   const store = await readStore();
   const today = dayKey(new Date());
 

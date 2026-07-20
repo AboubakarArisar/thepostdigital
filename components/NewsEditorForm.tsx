@@ -118,6 +118,16 @@ async function transliterateAllRomanWords(value: string) {
   return value.replace(/[A-Za-z][A-Za-z'-]*/g, (word) => converted.get(word) ?? word);
 }
 
+// <input type="datetime-local"> speaks "YYYY-MM-DDTHH:mm" in the admin's own
+// local time, so convert both ways rather than slicing the ISO string (which
+// would silently shift the time by the UTC offset).
+function toDateTimeLocal(iso?: string) {
+  const date = iso ? new Date(iso) : new Date(Date.now() + 60 * 60 * 1000);
+  const pad = (value: number) => String(value).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
   const router = useRouter();
   const saveInFlight = useRef(false);
@@ -143,6 +153,9 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
   const [priority, setPriority] = useState(
     String(Math.min(2, Math.max(0, article?.priority ?? 0))),
   );
+  const [publishAt, setPublishAt] = useState(() =>
+    toDateTimeLocal(article?.status === "scheduled" ? article.publishedAt : undefined),
+  );
   const [fields, setFields] = useState<TextFields>({
     title: article?.title || "",
     excerpt: article?.excerpt || "",
@@ -165,9 +178,13 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
         ? isEditing
           ? "Update Published"
           : "Publish"
-        : isEditing
-          ? "Update Story"
-          : "Save Story";
+        : status === "scheduled"
+          ? isEditing
+            ? "Update Schedule"
+            : "Schedule Story"
+          : isEditing
+            ? "Update Story"
+            : "Save Story";
 
   const inputClass =
     "w-full border border-wheat-900 bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-wheat-900";
@@ -311,6 +328,23 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
       return;
     }
 
+    const scheduledFor =
+      nextStatus === "scheduled" ? new Date(publishAt).getTime() : null;
+
+    if (scheduledFor !== null && !Number.isFinite(scheduledFor)) {
+      setSaveError("Pick the date and time this story should go live.");
+      saveInFlight.current = false;
+      return;
+    }
+
+    if (scheduledFor !== null && scheduledFor <= Date.now()) {
+      setSaveError(
+        "The scheduled time is in the past. Pick a future time, or set the status to Published to publish now.",
+      );
+      saveInFlight.current = false;
+      return;
+    }
+
     setIsSaving(true);
 
     const mediaType =
@@ -350,9 +384,11 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           imageCaption: fields.excerpt.trim() || fields.title.trim(),
           status: nextStatus,
           publishedAt:
-            isEditing && article?.publishedAt
-              ? article.publishedAt
-              : new Date().toISOString(),
+            scheduledFor !== null
+              ? new Date(scheduledFor).toISOString()
+              : isEditing && article?.publishedAt
+                ? article.publishedAt
+                : new Date().toISOString(),
           readingTime: Math.max(1, Math.ceil(fields.body.split(/\s+/).length / 220)),
           views: article?.views || 0,
           isBreaking: article?.isBreaking || false,
@@ -669,6 +705,26 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             <option value="scheduled">Scheduled</option>
             <option value="archived">Archived</option>
           </select>
+
+          {status === "scheduled" && (
+            <>
+              <label htmlFor="publishAt" className="editor-label mt-4">
+                Go live on
+              </label>
+              <input
+                id="publishAt"
+                type="datetime-local"
+                value={publishAt}
+                min={toDateTimeLocal()}
+                onChange={(event) => setPublishAt(event.target.value)}
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-muted">
+                The story stays hidden until this time, then appears on the site
+                automatically. Uses your device&rsquo;s clock.
+              </p>
+            </>
+          )}
         </div>
 
         <div className="grid gap-2">

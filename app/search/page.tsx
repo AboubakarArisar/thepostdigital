@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Pagination } from "@/components/Pagination";
 import { SearchFilters } from "@/components/SearchFilters";
 import { categories } from "@/lib/categories";
-import { getArticles } from "@/lib/data";
+import { getArticles, isLive } from "@/lib/data";
 import type { Article, Language } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -117,7 +117,7 @@ export default async function SearchPage({
     .filter((article) => matchesQuery(article, query))
     .filter((article) => !selectedCategory || matchesCategory(article, selectedCategory))
     .filter((article) => !language || article.language === language)
-    .filter((article) => article.status === "published")
+    .filter((article) => isLive(article))
     .filter((article) => matchesDate(article, selectedDate))
     .sort((a, b) => {
       if (sort === "popular") return b.views - a.views;

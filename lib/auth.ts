@@ -2,6 +2,7 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { cookies } from "next/headers";
+import { dbGetAdminUsers, dbReplaceAdminUsers, hasDatabase } from "./db";
 import type { AdminRole, AdminUser } from "./types";
 
 const SESSION_COOKIE = "post_admin_session";
@@ -82,6 +83,8 @@ function verifyPassword(password: string, storedHash: string) {
 }
 
 async function writeAdminUsers(users: AdminUser[]) {
+  if (hasDatabase) return dbReplaceAdminUsers(users);
+
   await mkdir(path.dirname(userStorePath), { recursive: true });
   await writeFile(userStorePath, JSON.stringify(users, null, 2), "utf8");
 }
@@ -113,11 +116,20 @@ function seededSuperAdmin(): AdminUser {
 export async function getAdminUsers() {
   let users: AdminUser[];
 
-  try {
-    users = JSON.parse(await readFile(userStorePath, "utf8")) as AdminUser[];
-  } catch {
-    users = (await readBundledAdminUsers()) ?? [seededSuperAdmin()];
-    await writeAdminUsers(users);
+  if (hasDatabase) {
+    users = await dbGetAdminUsers();
+
+    if (users.length === 0) {
+      users = [seededSuperAdmin()];
+      await writeAdminUsers(users);
+    }
+  } else {
+    try {
+      users = JSON.parse(await readFile(userStorePath, "utf8")) as AdminUser[];
+    } catch {
+      users = (await readBundledAdminUsers()) ?? [seededSuperAdmin()];
+      await writeAdminUsers(users);
+    }
   }
 
   const superEmail = seededAdmin.email.toLowerCase();

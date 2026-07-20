@@ -74,10 +74,19 @@ export async function PUT(
   try {
     const existing = await getArticleBySlug(slug);
     const requestedStatus = article.status as ArticleStatus;
+    // Scheduling is deferred publishing, so it carries the same super-admin gate.
     const status =
-      requestedStatus === "published" && !isSuperAdmin(session)
+      (requestedStatus === "published" || requestedStatus === "scheduled") &&
+      !isSuperAdmin(session)
         ? "pending_approval"
-        : requestedStatus;
+        : requestedStatus === "archived" && !isSuperAdmin(session)
+          ? (existing?.status ?? "draft")
+          : requestedStatus;
+    // The homepage lead is a newsroom-wide decision: a normal admin keeps
+    // whatever priority the story already had, whatever the request asked for.
+    const priority = isSuperAdmin(session)
+      ? (article.priority ?? existing?.priority ?? 0)
+      : (existing?.priority ?? 0);
     const approval =
       status === "published" && isSuperAdmin(session)
         ? {
@@ -108,7 +117,7 @@ export async function PUT(
       views: article.views || 0,
       isBreaking: article.isBreaking || false,
       isFeatured: article.isFeatured || false,
-      priority: article.priority ?? existing?.priority ?? 0,
+      priority,
       createdBy: article.createdBy || existing?.createdBy || session.email,
       ...approval,
     });

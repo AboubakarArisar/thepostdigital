@@ -2,30 +2,72 @@ import { AdminSidebar } from "@/components/AdminSidebar";
 import { AdminUsersTable } from "@/components/AdminUsersTable";
 import { ArticleTable } from "@/components/ArticleTable";
 import { AudiencePanel } from "@/components/AudiencePanel";
+import { LeadStories } from "@/components/LeadStories";
 import { StatsCard } from "@/components/StatsCard";
 import { getAnalytics } from "@/lib/analytics";
 import { getAdminSession, getAdminUsers, isSuperAdmin } from "@/lib/auth";
-import { getArticles } from "@/lib/data";
+import { getArticles, isLive } from "@/lib/data";
+import { formatDate } from "@/lib/format";
+import type { Article } from "@/lib/types";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
+const views = {
+  pending: {
+    title: "Pending approval",
+    match: (article: Article) => article.status === "pending_approval",
+  },
+  scheduled: {
+    title: "Scheduled stories",
+    match: (article: Article) => article.status === "scheduled",
+  },
+  drafts: {
+    title: "Drafts",
+    match: (article: Article) => article.status === "draft",
+  },
+  live: {
+    title: "Live on the site",
+    match: (article: Article) => isLive(article),
+  },
+} as const;
+
+type ViewKey = keyof typeof views;
+
+function isViewKey(value: string | undefined): value is ViewKey {
+  return value !== undefined && value in views;
+}
+
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string | string[] }>;
+}) {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
+
+  const rawView = (await searchParams).view;
+  const viewParam = Array.isArray(rawView) ? rawView[0] : rawView;
+  const view = isViewKey(viewParam) ? viewParam : null;
 
   const articles = await getArticles();
   const liveArticles = articles.filter((article) => article.status !== "archived");
   const archivedArticles = articles.filter((article) => article.status === "archived");
-  const published = liveArticles.filter((article) => article.status === "published");
+  // "Live" counts scheduled stories whose time has arrived, matching what the
+  // public site actually shows.
+  const published = liveArticles.filter((article) => isLive(article));
   const drafts = liveArticles.filter((article) => article.status === "draft").length;
   const pendingApproval = liveArticles.filter(
     (article) => article.status === "pending_approval",
   ).length;
-  const mediaStories = liveArticles.filter(
-    (article) => article.mediaType === "image" || article.mediaType === "video",
-  ).length;
+  const upcoming = liveArticles
+    .filter(
+      (article) =>
+        article.status === "scheduled" &&
+        new Date(article.publishedAt).getTime() > Date.now(),
+    )
+    .sort((a, b) => +new Date(a.publishedAt) - +new Date(b.publishedAt));
   const adminUsers = isSuperAdmin(session) ? await getAdminUsers() : [];
   const pendingAdminUsers = adminUsers.filter((user) => user.status === "pending").length;
   const analytics = await getAnalytics();
@@ -57,48 +99,95 @@ export default async function AdminDashboard() {
             </div>
           </div>
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {/* Only the counts that need a decision get a card. Everything else is
+            a one-line summary below, so the cards stay scannable. */}
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           <StatsCard
             label="Published"
             value={String(published.length)}
-            detail="Live stories visible on the public site"
+            detail="Stories visible on the public site right now"
+            href="/admin?view=live#stories"
+            active={view === "live"}
+          />
+          <StatsCard
+            label="Pending"
+            value={String(pendingApproval)}
+            detail={
+              isSuperAdmin(session)
+                ? "Submitted stories waiting for your approval"
+                : "Your submitted stories waiting for approval"
+            }
+            href="/admin?view=pending#stories"
+            active={view === "pending"}
+          />
+          <StatsCard
+            label="Scheduled"
+            value={String(upcoming.length)}
+            detail="Stories queued to publish themselves later"
+            href="/admin?view=scheduled#stories"
+            active={view === "scheduled"}
           />
           <StatsCard
             label="Drafts"
             value={String(drafts)}
             detail="Stories waiting for editorial review"
+            href="/admin?view=drafts#stories"
+            active={view === "drafts"}
           />
-          <StatsCard
-            label="Pending"
-            value={String(pendingApproval)}
-            detail="Submitted stories waiting for super admin approval"
-          />
-          <StatsCard
-            label="Media"
-            value={String(mediaStories)}
-            detail="Image and video stories ready for Cloudinary assets"
-          />
-          {isSuperAdmin(session) && (
+          {isSuperAdmin(session) ? (
             <StatsCard
               label="Access"
               value={String(pendingAdminUsers)}
               detail="Admin access requests waiting for review"
+              href="#access-requests"
+            />
+          ) : (
+            <StatsCard
+              label="Archived"
+              value={String(archivedArticles.length)}
+              detail="Hidden stories kept in the admin archive"
+              href="/admin/archive"
             />
           )}
-          <StatsCard
-            label="Archived"
-            value={String(archivedArticles.length)}
-            detail="Hidden stories kept in the admin archive"
-          />
         </div>
+        <p className="mt-3 text-sm font-bold text-muted">
+          {published.length} live on the site ·{" "}
+          <Link href="/admin/archive" className="underline hover:text-ink">
+            {archivedArticles.length} archived
+          </Link>{" "}
+          · {articles.length} stories in total
+        </p>
+
+        <div className="mt-6">
+          <LeadStories articles={liveArticles} />
+        </div>
+
+        {view === null && upcoming.length > 0 && (
+          <div className="mt-6">
+            <ArticleTable
+              articles={upcoming}
+              currentRole={session.role}
+              title={`Scheduled — next up ${formatDate(upcoming[0].publishedAt)}`}
+            />
+          </div>
+        )}
+
         <div className="mt-6">
           <AudiencePanel analytics={analytics} />
         </div>
-        <div className="mt-6">
+        <div className="mt-6 scroll-mt-6" id="stories">
+          {view && (
+            <p className="mb-2 text-sm font-bold text-muted">
+              Showing {views[view].title.toLowerCase()} ·{" "}
+              <Link href="/admin#stories" className="underline hover:text-ink">
+                show all stories
+              </Link>
+            </p>
+          )}
           <ArticleTable
-            articles={liveArticles}
+            articles={view ? liveArticles.filter(views[view].match) : liveArticles}
             currentRole={session.role}
-            title="Recent editorial"
+            title={view ? views[view].title : "Recent editorial"}
           />
         </div>
         {isSuperAdmin(session) && (

@@ -59,8 +59,12 @@ export async function POST(request: Request) {
     }
 
     const requestedStatus = article.status as ArticleStatus;
+    // Scheduling is just deferred publishing, so it needs the same super-admin
+    // gate. Without this an admin could schedule a story a minute out and have
+    // it go live without ever passing approval.
     const status =
-      requestedStatus === "published" && !isSuperAdmin(session)
+      (requestedStatus === "published" || requestedStatus === "scheduled") &&
+      !isSuperAdmin(session)
         ? "pending_approval"
         : requestedStatus;
     const approval =
@@ -91,6 +95,9 @@ export async function POST(request: Request) {
       views: article.views || 0,
       isBreaking: article.isBreaking || false,
       isFeatured: article.isFeatured || false,
+      // Was silently dropped on create, so the editor's "Top story" choice only
+      // took effect on a later edit. Super admin only, same as the PUT route.
+      priority: isSuperAdmin(session) ? (article.priority ?? 0) : 0,
       createdBy: session.email,
       ...approval,
     });
@@ -115,8 +122,18 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!(await getAdminSession())) {
+  const session = await getAdminSession();
+
+  if (!session) {
     return NextResponse.json({ error: "Admin login required." }, { status: 401 });
+  }
+
+  // Deleting is permanent and newsroom-wide, so it stays with the super admin.
+  if (!isSuperAdmin(session)) {
+    return NextResponse.json(
+      { error: "Only a super admin can delete stories. Archive it instead." },
+      { status: 403 },
+    );
   }
 
   const slug = new URL(request.url).searchParams.get("slug");

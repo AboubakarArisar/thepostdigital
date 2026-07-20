@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { formatDate, languageName } from "@/lib/format";
-import type { AdminRole, Article } from "@/lib/types";
+import type { AdminRole, Article, Language } from "@/lib/types";
 
 const ARTICLES_PER_PAGE = 10;
 
@@ -41,15 +41,21 @@ export function ArticleTable({
   const [pendingDelete, setPendingDelete] = useState<Article | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [featuringSlug, setFeaturingSlug] = useState<string | null>(null);
+  const [languageFilter, setLanguageFilter] = useState<"all" | Language>("all");
+  const isSuper = currentRole === "super_admin";
 
   // Re-sync when the server sends a fresh list (e.g. after router.refresh()).
   useEffect(() => {
     setItems(articles);
   }, [articles]);
 
-  const totalPages = Math.max(1, Math.ceil(items.length / ARTICLES_PER_PAGE));
+  const visible =
+    languageFilter === "all"
+      ? items
+      : items.filter((item) => item.language === languageFilter);
+  const totalPages = Math.max(1, Math.ceil(visible.length / ARTICLES_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
-  const pageArticles = items.slice(
+  const pageArticles = visible.slice(
     (currentPage - 1) * ARTICLES_PER_PAGE,
     currentPage * ARTICLES_PER_PAGE,
   );
@@ -180,11 +186,38 @@ export function ArticleTable({
 
   return (
     <div className="border-2 border-wheat-900">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-wheat-900 bg-elevated px-3 py-2">
+        <p className="text-sm font-black uppercase tracking-[0.16em] text-ink">
+          {title}
+        </p>
+        {/* The lead story is per language, so filtering by language is the
+            fastest way to find the story you want to feature. */}
+        <div className="flex items-center gap-1 text-xs font-black uppercase tracking-[0.12em]">
+          {([
+            ["all", `All (${items.length})`],
+            ["en", `English (${items.filter((i) => i.language === "en").length})`],
+            ["ur", `اردو (${items.filter((i) => i.language === "ur").length})`],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => {
+                setLanguageFilter(value);
+                setPage(1);
+              }}
+              className={`cursor-pointer rounded-md border px-2 py-1 transition-colors ${
+                languageFilter === value
+                  ? "border-accent bg-accent text-white"
+                  : "border-wheat-900 hover:bg-black hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="overflow-x-auto">
       <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-        <caption className="border-b-2 border-wheat-900 bg-elevated px-3 py-2 text-left text-sm font-black uppercase tracking-[0.16em] text-ink">
-          {title}
-        </caption>
         <thead>
           <tr className="border-b-2 border-wheat-900 text-xs uppercase tracking-[0.14em]">
             <th className="p-3">Title</th>
@@ -198,10 +231,12 @@ export function ArticleTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-wheat-900">
-          {items.length === 0 ? (
+          {visible.length === 0 ? (
             <tr>
               <td className="p-6 text-center font-bold text-zinc-600" colSpan={8}>
-                No stories found here.
+                {languageFilter === "all"
+                  ? "No stories found here."
+                  : "No stories in this language yet."}
               </td>
             </tr>
           ) : (
@@ -229,7 +264,14 @@ export function ArticleTable({
                   {article.status}
                 </span>
               </td>
-              <td className="p-3">{formatDate(article.publishedAt)}</td>
+              <td className="p-3">
+                {formatDate(article.publishedAt)}
+                {article.status === "scheduled" && (
+                  <span className="mt-0.5 block text-xs font-black uppercase tracking-[0.1em] text-muted">
+                    goes live
+                  </span>
+                )}
+              </td>
               <td className="p-3">
                 <div className="flex flex-wrap gap-2">
                   <Link
@@ -253,38 +295,45 @@ export function ArticleTable({
                         : "Approve"
                       : "Submit"}
                   </button>
-                  <button
-                    className={`cursor-pointer rounded-md border px-2 py-0.5 text-xs font-black uppercase tracking-[0.08em] transition-colors disabled:opacity-50 ${
-                      (article.priority ?? 0) >= 2
-                        ? "border-accent bg-accent text-white"
-                        : "border-wheat-900 hover:bg-accent hover:text-white"
-                    }`}
-                    type="button"
-                    disabled={featuringSlug !== null}
-                    onClick={() => toggleFeatured(article)}
-                  >
-                    {featuringSlug === article.slug
-                      ? "Saving…"
-                      : (article.priority ?? 0) >= 2
-                        ? "Unfeature"
-                        : "Feature"}
-                  </button>
-                  {article.status !== "archived" && (
-                    <button
-                      className="cursor-pointer font-bold underline"
-                      type="button"
-                      onClick={() => archiveStory(article)}
-                    >
-                      Archive
-                    </button>
+                  {/* Choosing the homepage lead, archiving and deleting are
+                      newsroom-wide actions, so they stay with the super admin.
+                      The API enforces the same rule server side. */}
+                  {isSuper && (
+                    <>
+                      <button
+                        className={`cursor-pointer rounded-md border px-2 py-0.5 text-xs font-black uppercase tracking-[0.08em] transition-colors disabled:opacity-50 ${
+                          (article.priority ?? 0) >= 2
+                            ? "border-accent bg-accent text-white"
+                            : "border-wheat-900 hover:bg-accent hover:text-white"
+                        }`}
+                        type="button"
+                        disabled={featuringSlug !== null}
+                        onClick={() => toggleFeatured(article)}
+                      >
+                        {featuringSlug === article.slug
+                          ? "Saving…"
+                          : (article.priority ?? 0) >= 2
+                            ? "Unfeature"
+                            : "Feature"}
+                      </button>
+                      {article.status !== "archived" && (
+                        <button
+                          className="cursor-pointer font-bold underline"
+                          type="button"
+                          onClick={() => archiveStory(article)}
+                        >
+                          Archive
+                        </button>
+                      )}
+                      <button
+                        className="cursor-pointer font-bold underline"
+                        type="button"
+                        onClick={() => setPendingDelete(article)}
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
-                  <button
-                    className="cursor-pointer font-bold underline"
-                    type="button"
-                    onClick={() => setPendingDelete(article)}
-                  >
-                    Delete
-                  </button>
                 </div>
               </td>
             </tr>

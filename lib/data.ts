@@ -456,8 +456,22 @@ export async function deleteArticle(slug: string) {
   return nextArticles.length !== articles.length;
 }
 
+// A story is publicly visible when it is published, or when it is scheduled and
+// its publish time has arrived. Deciding this at read time means a scheduled
+// story goes live to the second, with no cron job that can misfire or be missed
+// (Vercel's hobby plan only runs cron once a day, which would be useless here).
+export function isLive(article: Article, now = Date.now()) {
+  if (article.status === "published") return true;
+
+  return (
+    article.status === "scheduled" &&
+    new Date(article.publishedAt).getTime() <= now
+  );
+}
+
 export async function getPublishedArticles() {
-  return (await getArticles()).filter((article) => article.status === "published");
+  const now = Date.now();
+  return (await getArticles()).filter((article) => isLive(article, now));
 }
 
 export async function getArticleBySlug(slug: string) {
@@ -466,7 +480,7 @@ export async function getArticleBySlug(slug: string) {
 
 export async function getPublishedArticleBySlug(slug: string) {
   const article = await getArticleBySlug(slug);
-  return article?.status === "published" ? article : undefined;
+  return article && isLive(article) ? article : undefined;
 }
 
 export async function getRelatedArticles(article: Article) {
