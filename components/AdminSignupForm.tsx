@@ -120,12 +120,12 @@ export function AdminSignupForm() {
         </ul>
       </div>
       {error && (
-        <p className="border border-wheat-900 bg-accent-soft p-3 text-sm font-bold" role="alert">
+        <p className="border border-wheat-900 bg-accent-soft p-3 text-red font-bold" role="alert">
           {error}
         </p>
       )}
       {message && (
-        <p className="border border-wheat-900 bg-white p-3 text-sm font-bold" role="status">
+        <p className="border border-wheat-900 bg-white p-3 text-black font-bold" role="status">
           {message}
         </p>
       )}
