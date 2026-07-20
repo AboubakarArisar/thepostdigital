@@ -2,6 +2,13 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { categories, deskCategories, formatCategories } from "./categories";
+import {
+  dbClearOtherTops,
+  dbDeleteArticle,
+  dbGetArticles,
+  dbUpsertArticle,
+  hasDatabase,
+} from "./db";
 import type { Article } from "./types";
 
 export { categories, deskCategories, formatCategories };
@@ -332,6 +339,8 @@ function normalizeSlug(value: string) {
 }
 
 export async function getArticles() {
+  if (hasDatabase) return dbGetArticles();
+
   if (hasCloudinaryStore()) {
     const cloudinaryArticles = await readCloudinaryArticles();
 
@@ -383,6 +392,13 @@ export async function saveArticle(article: Article) {
   }
 
   const savedArticle = { ...article, slug };
+
+  if (hasDatabase) {
+    await dbUpsertArticle(savedArticle);
+    await dbClearOtherTops(savedArticle);
+    return savedArticle;
+  }
+
   await writeArticles(enforceSingleTop([savedArticle, ...articles], savedArticle));
   return savedArticle;
 }
@@ -416,6 +432,15 @@ export async function updateArticle(slug: string, article: Article) {
   }
 
   const updatedArticle = { ...article, slug: nextSlug };
+
+  if (hasDatabase) {
+    await dbUpsertArticle(updatedArticle);
+    // The slug is the primary key, so a rename leaves the old row behind.
+    if (nextSlug !== slug) await dbDeleteArticle(slug);
+    await dbClearOtherTops(updatedArticle);
+    return updatedArticle;
+  }
+
   const nextArticles = [...articles];
   nextArticles[index] = updatedArticle;
   await writeArticles(enforceSingleTop(nextArticles, updatedArticle));
@@ -423,6 +448,8 @@ export async function updateArticle(slug: string, article: Article) {
 }
 
 export async function deleteArticle(slug: string) {
+  if (hasDatabase) return dbDeleteArticle(slug);
+
   const articles = await getArticles();
   const nextArticles = articles.filter((article) => article.slug !== slug);
   await writeArticles(nextArticles);

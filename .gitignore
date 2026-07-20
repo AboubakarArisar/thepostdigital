@@ -58,3 +58,8 @@ CLAUDE.md
 # Metadata icons must ship with the app (they override the *.png rule above)
 !app/icon.png
 !app/apple-icon.png
+
+# Neon CLI workspace link (machine-local)
+.neon
+./scripts
+/scripts*
