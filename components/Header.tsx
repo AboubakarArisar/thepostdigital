@@ -6,9 +6,17 @@ import type { Language } from "@/lib/types";
 import { SiteLogo } from "./SiteLogo";
 import { ThemeToggle } from "./ThemeToggle";
 
-const labels: Record<Language, { home: string; search: string; about: string }> = {
-  en: { home: "Home", search: "Search", about: "About" },
-  ur: { home: "صفحہ اول", search: "تلاش", about: "ہمارے بارے میں" },
+const labels: Record<
+  Language,
+  { home: string; search: string; about: string; contact: string }
+> = {
+  en: { home: "Home", search: "Search", about: "About", contact: "Contact" },
+  ur: {
+    home: "صفحہ اول",
+    search: "تلاش",
+    about: "ہمارے بارے میں",
+    contact: "رابطہ",
+  },
 };
 
 export async function Header({ language = "en" }: { language?: Language }) {
@@ -123,6 +131,12 @@ export async function Header({ language = "en" }: { language?: Language }) {
             className="shrink-0 hover:text-accent"
           >
             {copy.about}
+          </Link>
+          <Link
+            href={language === "en" ? "/contact?language=en" : "/contact"}
+            className="shrink-0 hover:text-accent"
+          >
+            {copy.contact}
           </Link>
         </div>
       </nav>

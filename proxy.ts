@@ -104,6 +104,7 @@ function isPublicPage(pathname: string) {
   return (
     pathname === "/" ||
     pathname === "/about" ||
+    pathname === "/contact" ||
     pathname === "/search" ||
     pathname.startsWith("/article/")
   );
@@ -151,6 +152,7 @@ export const config = {
   matcher: [
     "/",
     "/about",
+    "/contact",
     "/search",
     "/article/:path*",
     "/admin/:path*",

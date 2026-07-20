@@ -30,7 +30,7 @@ export function AdminSidebar() {
       <nav className="flex overflow-x-auto border-t border-wheat-900 md:block">
         {adminLinks.map((link) => (
           <Link
-            className="block shrink-0 border-r border-wheat-900 px-4 py-3 text-sm font-black uppercase tracking-[0.12em] hover:bg-accent hover:text-white md:border-b md:border-r-0"
+            className="block shrink-0 border-r cursor-pointer border-wheat-900 px-4 py-3 text-sm font-black uppercase tracking-[0.12em] hover:bg-accent hover:text-white md:border-b md:border-r-0"
             href={link.href}
             key={link.href}
           >
