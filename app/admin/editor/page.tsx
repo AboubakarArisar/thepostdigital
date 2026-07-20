@@ -1,7 +1,7 @@
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { NewsEditorForm } from "@/components/NewsEditorForm";
 import { getAdminSession } from "@/lib/auth";
-import { getArticleBySlug } from "@/lib/data";
+import { canManageArticle, getArticleBySlug } from "@/lib/data";
 import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,9 @@ export default async function EditorPage({
   if (!session) redirect("/admin/login");
   const { slug } = await searchParams;
   const article = slug ? await getArticleBySlug(slug) : undefined;
-  if (slug && !article) notFound();
+  // Someone else's story is not just hidden from the list, it is unreachable by
+  // URL too — otherwise the dashboard scoping would be cosmetic.
+  if (slug && (!article || !canManageArticle(article, session))) notFound();
 
   return (
     <main className="grid min-h-screen md:grid-cols-[16rem_1fr]">

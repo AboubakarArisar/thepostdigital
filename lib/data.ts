@@ -6,10 +6,11 @@ import {
   dbClearOtherTops,
   dbDeleteArticle,
   dbGetArticles,
+  dbPublishDueScheduled,
   dbUpsertArticle,
   hasDatabase,
 } from "./db";
-import type { Article } from "./types";
+import type { AdminRole, Article } from "./types";
 
 export { categories, deskCategories, formatCategories };
 
@@ -339,7 +340,27 @@ function normalizeSlug(value: string) {
 }
 
 export async function getArticles() {
-  if (hasDatabase) return dbGetArticles();
+  if (hasDatabase) {
+    const articles = await dbGetArticles();
+    const due = articles.filter(
+      (article) => article.status === "scheduled" && isLive(article),
+    );
+
+    // Nothing due is the normal case, so this costs no extra query. When
+    // something is due it is flipped to "published" for real, which keeps the
+    // dashboard badge and the editor honest rather than saying "scheduled"
+    // forever. isLive() still guards visibility, so a story is never late.
+    if (due.length === 0) return articles;
+
+    await dbPublishDueScheduled();
+    const promoted = new Set(due.map((article) => article.slug));
+
+    return articles.map((article) =>
+      promoted.has(article.slug)
+        ? { ...article, status: "published" as const }
+        : article,
+    );
+  }
 
   if (hasCloudinaryStore()) {
     const cloudinaryArticles = await readCloudinaryArticles();
@@ -454,6 +475,21 @@ export async function deleteArticle(slug: string) {
   const nextArticles = articles.filter((article) => article.slug !== slug);
   await writeArticles(nextArticles);
   return nextArticles.length !== articles.length;
+}
+
+// Admin accounts are not shared: a normal admin only ever sees and edits the
+// stories they created, while the super admin sees the whole newsroom. Defined
+// once here so every page and API route enforces the same rule.
+type Viewer = { role: AdminRole; email: string };
+
+export function canManageArticle(article: Article, viewer: Viewer) {
+  return viewer.role === "super_admin" || article.createdBy === viewer.email;
+}
+
+export function articlesFor(articles: Article[], viewer: Viewer) {
+  return viewer.role === "super_admin"
+    ? articles
+    : articles.filter((article) => canManageArticle(article, viewer));
 }
 
 // A story is publicly visible when it is published, or when it is scheduled and

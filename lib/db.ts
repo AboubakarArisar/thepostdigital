@@ -104,6 +104,18 @@ export async function dbClearOtherTops(article: Article) {
        AND priority >= 2`;
 }
 
+// Promotes scheduled stories whose time has arrived to real published rows, so
+// the stored status matches what readers see instead of saying "scheduled"
+// forever. One indexed statement, and safe to run concurrently.
+export async function dbPublishDueScheduled() {
+  await client()`
+    UPDATE articles
+       SET status = 'published',
+           data = jsonb_set(data, '{status}', '"published"')
+     WHERE status = 'scheduled'
+       AND published_at <= now()`;
+}
+
 export async function dbGetAdminUsers(): Promise<AdminUser[]> {
   const rows = await client()`
     SELECT * FROM admin_users ORDER BY created_at ASC`;

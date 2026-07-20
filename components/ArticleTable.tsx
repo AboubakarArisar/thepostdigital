@@ -18,6 +18,78 @@ const statusClass = {
   archived: "bg-zinc-700 text-yellow-400",
 };
 
+// Single-path stroke icons, inlined rather than pulling in an icon package for
+// seven glyphs.
+const iconPaths = {
+  edit: "M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z",
+  send: "m22 2-7 20-4-9-9-4Z",
+  check: "M20 6 9 17l-5-5",
+  hide: "M9.9 4.24A9.1 9.1 0 0 1 12 4c6.4 0 10 7 10 7a18 18 0 0 1-2.16 3.19M6.61 6.61A18 18 0 0 0 2 11s3.6 7 10 7a9 9 0 0 0 5.39-1.61M2 2l20 20",
+  star: "m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z",
+  archive: "M21 8v13H3V8M1 3h22v5H1zM10 12h4",
+  trash: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6",
+};
+
+type IconName = keyof typeof iconPaths;
+
+function ActionIcon({ name, filled }: { name: IconName; filled?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={iconPaths[name]} />
+    </svg>
+  );
+}
+
+const actionBase =
+  "inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-40";
+
+// Icon-only controls still need a name for screen readers and for anyone who
+// cannot guess the glyph, so every one carries a title and an aria-label.
+function ActionButton({
+  label,
+  name,
+  onClick,
+  disabled,
+  filled,
+  tone = "default",
+}: {
+  label: string;
+  name: IconName;
+  onClick: () => void;
+  disabled?: boolean;
+  filled?: boolean;
+  tone?: "default" | "danger";
+}) {
+  const skin = filled
+    ? "border-accent bg-accent text-white"
+    : tone === "danger"
+      ? "border-wheat-900 hover:border-red-600 hover:bg-red-600 hover:text-white"
+      : "border-wheat-900 hover:border-accent hover:bg-accent hover:text-white";
+
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={`${actionBase} ${skin}`}
+    >
+      <ActionIcon name={name} filled={filled} />
+    </button>
+  );
+}
+
 function articleApiRoute(slug: string) {
   return `/api/articles/${encodeURIComponent(slug)}`;
 }
@@ -75,6 +147,13 @@ export function ArticleTable({
         setItems((current) => current.filter((item) => item.slug !== slug));
         setPendingDelete(null);
         toast.success("Story deleted.");
+      } else if (response.status === 404) {
+        // Someone else deleted it while this page was open, so the row is a
+        // ghost from stale HTML. Drop it instead of showing a confusing error.
+        setItems((current) => current.filter((item) => item.slug !== slug));
+        setPendingDelete(null);
+        toast("This story was already removed by someone else.");
+        router.refresh();
       } else {
         const result = (await response.json().catch(() => ({}))) as {
           error?: string;
@@ -259,7 +338,7 @@ export function ArticleTable({
               <td className="p-3">{languageName(article.language)}</td>
               <td className="p-3">
                 <span
-                  className={`border border-wheat-900 px-2 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusClass[article.status]}`}
+                  className={`border border-wheat-900 px-2 py-1 text-white text-xs font-black uppercase tracking-[0.12em] ${statusClass[article.status]}`}
                 >
                   {article.status}
                 </span>
@@ -273,67 +352,71 @@ export function ArticleTable({
                 )}
               </td>
               <td className="p-3">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-1.5">
                   <Link
-                    className="cursor-pointer font-bold underline"
                     href={`/admin/editor?slug=${encodeURIComponent(article.slug)}`}
+                    title="Edit story"
+                    aria-label="Edit story"
+                    className={`${actionBase} border-wheat-900 hover:border-accent hover:bg-accent hover:text-white`}
                   >
-                    Edit
+                    <ActionIcon name="edit" />
                   </Link>
-                  <button
-                    className="cursor-pointer font-bold underline"
-                    type="button"
-                    onClick={() =>
-                      currentRole === "super_admin"
-                        ? changeStatus(article)
-                        : submitForApproval(article)
-                    }
-                  >
-                    {currentRole === "super_admin"
-                      ? article.status === "published"
-                        ? "Draft"
-                        : "Approve"
-                      : "Submit"}
-                  </button>
-                  {/* Choosing the homepage lead, archiving and deleting are
-                      newsroom-wide actions, so they stay with the super admin.
-                      The API enforces the same rule server side. */}
+
+                  {isSuper ? (
+                    <ActionButton
+                      label={
+                        article.status === "published"
+                          ? "Move back to draft"
+                          : "Publish now"
+                      }
+                      name={article.status === "published" ? "hide" : "check"}
+                      onClick={() => changeStatus(article)}
+                    />
+                  ) : (
+                    // Only a draft has anything to submit — showing it on an
+                    // already published or pending story was just noise.
+                    article.status === "draft" && (
+                      <ActionButton
+                        label="Submit for approval"
+                        name="send"
+                        onClick={() => submitForApproval(article)}
+                      />
+                    )
+                  )}
+
+                  {/* The homepage lead and archiving are newsroom-wide calls,
+                      so they stay with the super admin. */}
                   {isSuper && (
                     <>
-                      <button
-                        className={`cursor-pointer rounded-md border px-2 py-0.5 text-xs font-black uppercase tracking-[0.08em] transition-colors disabled:opacity-50 ${
+                      <ActionButton
+                        label={
                           (article.priority ?? 0) >= 2
-                            ? "border-accent bg-accent text-white"
-                            : "border-wheat-900 hover:bg-accent hover:text-white"
-                        }`}
-                        type="button"
+                            ? "Remove as top story"
+                            : "Make top story"
+                        }
+                        name="star"
+                        filled={(article.priority ?? 0) >= 2}
                         disabled={featuringSlug !== null}
                         onClick={() => toggleFeatured(article)}
-                      >
-                        {featuringSlug === article.slug
-                          ? "Saving…"
-                          : (article.priority ?? 0) >= 2
-                            ? "Unfeature"
-                            : "Feature"}
-                      </button>
+                      />
                       {article.status !== "archived" && (
-                        <button
-                          className="cursor-pointer font-bold underline"
-                          type="button"
+                        <ActionButton
+                          label="Archive story"
+                          name="archive"
                           onClick={() => archiveStory(article)}
-                        >
-                          Archive
-                        </button>
+                        />
                       )}
-                      <button
-                        className="cursor-pointer font-bold underline"
-                        type="button"
-                        onClick={() => setPendingDelete(article)}
-                      >
-                        Delete
-                      </button>
                     </>
                   )}
+
+                  {/* Deleting your own story is your call. The API still checks
+                      ownership, so this can only ever hit your own work. */}
+                  <ActionButton
+                    label="Delete story"
+                    name="trash"
+                    tone="danger"
+                    onClick={() => setPendingDelete(article)}
+                  />
                 </div>
               </td>
             </tr>

@@ -6,7 +6,7 @@ import { LeadStories } from "@/components/LeadStories";
 import { StatsCard } from "@/components/StatsCard";
 import { getAnalytics } from "@/lib/analytics";
 import { getAdminSession, getAdminUsers, isSuperAdmin } from "@/lib/auth";
-import { getArticles, isLive } from "@/lib/data";
+import { articlesFor, getArticles, isLive } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import Link from "next/link";
@@ -51,7 +51,9 @@ export default async function AdminDashboard({
   const viewParam = Array.isArray(rawView) ? rawView[0] : rawView;
   const view = isViewKey(viewParam) ? viewParam : null;
 
-  const articles = await getArticles();
+  const isSuper = isSuperAdmin(session);
+  // A normal admin's dashboard only ever contains their own stories.
+  const articles = articlesFor(await getArticles(), session);
   const liveArticles = articles.filter((article) => article.status !== "archived");
   const archivedArticles = articles.filter((article) => article.status === "archived");
   // "Live" counts scheduled stories whose time has arrived, matching what the
@@ -61,16 +63,14 @@ export default async function AdminDashboard({
   const pendingApproval = liveArticles.filter(
     (article) => article.status === "pending_approval",
   ).length;
+  // Scheduled but not yet live — once the time passes, getArticles() has
+  // already promoted it to "published".
   const upcoming = liveArticles
-    .filter(
-      (article) =>
-        article.status === "scheduled" &&
-        new Date(article.publishedAt).getTime() > Date.now(),
-    )
+    .filter((article) => article.status === "scheduled" && !isLive(article))
     .sort((a, b) => +new Date(a.publishedAt) - +new Date(b.publishedAt));
-  const adminUsers = isSuperAdmin(session) ? await getAdminUsers() : [];
+  const adminUsers = isSuper ? await getAdminUsers() : [];
   const pendingAdminUsers = adminUsers.filter((user) => user.status === "pending").length;
-  const analytics = await getAnalytics();
+  const analytics = isSuper ? await getAnalytics() : null;
 
   return (
     <main className="grid min-h-screen md:grid-cols-[16rem_1fr]">
@@ -83,10 +83,12 @@ export default async function AdminDashboard({
                 Newsroom
               </p>
               <h1 className="font-serif-display mt-2 text-5xl font-black leading-none">
-                Dashboard
+                {isSuper ? "Dashboard" : "My stories"}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-                Review stories, publish approved work, and manage access requests from one place.
+                {isSuper
+                  ? "Review stories, publish approved work, and manage access requests from one place."
+                  : "Write and edit your own stories. Submitted work goes to the super admin for approval before it appears on the site."}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -113,7 +115,7 @@ export default async function AdminDashboard({
             label="Pending"
             value={String(pendingApproval)}
             detail={
-              isSuperAdmin(session)
+              isSuper
                 ? "Submitted stories waiting for your approval"
                 : "Your submitted stories waiting for approval"
             }
@@ -134,7 +136,7 @@ export default async function AdminDashboard({
             href="/admin?view=drafts#stories"
             active={view === "drafts"}
           />
-          {isSuperAdmin(session) ? (
+          {isSuper ? (
             <StatsCard
               label="Access"
               value={String(pendingAdminUsers)}
@@ -155,12 +157,16 @@ export default async function AdminDashboard({
           <Link href="/admin/archive" className="underline hover:text-ink">
             {archivedArticles.length} archived
           </Link>{" "}
-          · {articles.length} stories in total
+          · {articles.length} {isSuper ? "stories in total" : "of your stories"}
         </p>
 
-        <div className="mt-6">
-          <LeadStories articles={liveArticles} />
-        </div>
+        {/* Choosing the homepage lead is a super-admin decision, so a normal
+            admin is not shown the two language leads at all. */}
+        {isSuper && (
+          <div className="mt-6">
+            <LeadStories articles={liveArticles} />
+          </div>
+        )}
 
         {view === null && upcoming.length > 0 && (
           <div className="mt-6">
@@ -172,9 +178,13 @@ export default async function AdminDashboard({
           </div>
         )}
 
-        <div className="mt-6">
-          <AudiencePanel analytics={analytics} />
-        </div>
+        {/* Site-wide traffic belongs to whoever runs the newsroom, not to an
+            individual writer. */}
+        {isSuper && analytics && (
+          <div className="mt-6">
+            <AudiencePanel analytics={analytics} />
+          </div>
+        )}
         <div className="mt-6 scroll-mt-6" id="stories">
           {view && (
             <p className="mb-2 text-sm font-bold text-muted">
@@ -187,10 +197,16 @@ export default async function AdminDashboard({
           <ArticleTable
             articles={view ? liveArticles.filter(views[view].match) : liveArticles}
             currentRole={session.role}
-            title={view ? views[view].title : "Recent editorial"}
+            title={
+              view
+                ? views[view].title
+                : isSuper
+                  ? "Recent editorial"
+                  : "My stories"
+            }
           />
         </div>
-        {isSuperAdmin(session) && (
+        {isSuper && (
           <div className="mt-6 scroll-mt-6" id="access-requests">
             <AdminUsersTable users={adminUsers} />
           </div>

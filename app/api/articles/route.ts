@@ -1,7 +1,14 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getAdminSession, isSuperAdmin } from "@/lib/auth";
-import { deleteArticle, getArticles, saveArticle } from "@/lib/data";
+import {
+  articlesFor,
+  canManageArticle,
+  deleteArticle,
+  getArticleBySlug,
+  getArticles,
+  saveArticle,
+} from "@/lib/data";
 import type {
   Article,
   ArticleContentType,
@@ -22,11 +29,15 @@ const contentTypes = new Set(["news", "editorial", "photo", "video"]);
 const mediaTypes = new Set(["image", "video"]);
 
 export async function GET() {
-  if (!(await getAdminSession())) {
+  const session = await getAdminSession();
+
+  if (!session) {
     return NextResponse.json({ error: "Admin login required." }, { status: 401 });
   }
 
-  return NextResponse.json({ articles: await getArticles() });
+  return NextResponse.json({
+    articles: articlesFor(await getArticles(), session),
+  });
 }
 
 export async function POST(request: Request) {
@@ -128,18 +139,25 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Admin login required." }, { status: 401 });
   }
 
-  // Deleting is permanent and newsroom-wide, so it stays with the super admin.
-  if (!isSuperAdmin(session)) {
-    return NextResponse.json(
-      { error: "Only a super admin can delete stories. Archive it instead." },
-      { status: 403 },
-    );
-  }
 
   const slug = new URL(request.url).searchParams.get("slug");
 
   if (!slug) {
     return NextResponse.json({ error: "Story slug is required." }, { status: 400 });
+  }
+
+  // An admin may delete their own story, never someone else's.
+  const existing = await getArticleBySlug(slug);
+
+  if (!existing) {
+    return NextResponse.json({ error: "Story was not found." }, { status: 404 });
+  }
+
+  if (!canManageArticle(existing, session)) {
+    return NextResponse.json(
+      { error: "You can only delete stories you created." },
+      { status: 403 },
+    );
   }
 
   const deleted = await deleteArticle(slug);

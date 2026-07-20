@@ -2,7 +2,7 @@ import { AdminSidebar } from "@/components/AdminSidebar";
 import { ArticleTable } from "@/components/ArticleTable";
 import { StatsCard } from "@/components/StatsCard";
 import { getAdminSession } from "@/lib/auth";
-import { getArticles } from "@/lib/data";
+import { articlesFor, getArticles } from "@/lib/data";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export default async function AdminArchivePage() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
 
-  const articles = await getArticles();
+  const articles = articlesFor(await getArticles(), session);
   const archivedArticles = articles.filter((article) => article.status === "archived");
 
   return (

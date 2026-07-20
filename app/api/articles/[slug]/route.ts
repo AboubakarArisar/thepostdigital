@@ -1,7 +1,12 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getAdminSession, isSuperAdmin } from "@/lib/auth";
-import { deleteArticle, getArticleBySlug, updateArticle } from "@/lib/data";
+import {
+  canManageArticle,
+  deleteArticle,
+  getArticleBySlug,
+  updateArticle,
+} from "@/lib/data";
 import type {
   Article,
   ArticleContentType,
@@ -25,14 +30,18 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  if (!(await getAdminSession())) {
+  const session = await getAdminSession();
+
+  if (!session) {
     return NextResponse.json({ error: "Admin login required." }, { status: 401 });
   }
 
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
 
-  if (!article) {
+  // Another admin's story reads as "not found" rather than "forbidden", so the
+  // response never confirms that a story with this slug exists.
+  if (!article || !canManageArticle(article, session)) {
     return NextResponse.json({ error: "Story was not found." }, { status: 404 });
   }
 
@@ -73,6 +82,15 @@ export async function PUT(
 
   try {
     const existing = await getArticleBySlug(slug);
+
+    // Accounts are not shared: a normal admin may only edit their own stories.
+    if (existing && !canManageArticle(existing, session)) {
+      return NextResponse.json(
+        { error: "You can only edit stories you created." },
+        { status: 403 },
+      );
+    }
+
     const requestedStatus = article.status as ArticleStatus;
     // Scheduling is deferred publishing, so it carries the same super-admin gate.
     const status =
