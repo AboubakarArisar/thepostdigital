@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getAdminSession } from "@/lib/auth";
 import { categories } from "@/lib/categories";
 import { getPublishedArticles } from "@/lib/data";
 import { formatToday } from "@/lib/format";
@@ -13,7 +12,6 @@ const labels: Record<Language, { home: string; search: string; about: string }> 
 };
 
 export async function Header({ language = "en" }: { language?: Language }) {
-  const adminSession = await getAdminSession();
   const articles = await getPublishedArticles();
   const recentArticles = [...articles]
     .filter((article) => article.language === language)
@@ -44,14 +42,6 @@ export async function Header({ language = "en" }: { language?: Language }) {
                 اردو
               </Link>
             </div>
-            {adminSession && (
-              <Link
-                href="/admin"
-                className="border border-soft-rule px-2 py-1 text-[10px] font-black text-muted hover:border-rule hover:text-ink"
-              >
-                Admin
-              </Link>
-            )}
             <ThemeToggle />
           </div>
           <span

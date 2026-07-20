@@ -38,21 +38,43 @@ async function sign(value: string) {
   return bytesToHex(signature);
 }
 
-async function hasValidAdminSession(request: NextRequest) {
+// Compare in constant time so a signature cannot be recovered by timing the
+// response. lib/auth.ts uses timingSafeEqual for the same check; the Edge
+// runtime has no node:crypto, so this is the equivalent.
+function safeEqual(left: string, right: string) {
+  if (left.length !== right.length) return false;
+
+  let diff = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    diff |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+
+  return diff === 0;
+}
+
+type ProxySession = { email: string; role: "admin" | "super_admin" };
+
+async function readAdminSession(
+  request: NextRequest,
+): Promise<ProxySession | null> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!token) return false;
+  if (!token) return null;
 
   const [email, role, issuedAt, signature] = token.split("|");
 
-  if (!email || !role || !issuedAt || !signature) return false;
-  if (role !== "super_admin" && role !== "admin") return false;
+  if (!email || !role || !issuedAt || !signature) return null;
+  if (role !== "super_admin" && role !== "admin") return null;
 
   const issuedAtMs = Number(issuedAt);
   if (!Number.isFinite(issuedAtMs) || Date.now() - issuedAtMs > SESSION_MAX_AGE * 1000) {
-    return false;
+    return null;
   }
 
-  return signature === (await sign(`${email}|${role}|${issuedAt}`));
+  if (!safeEqual(signature, await sign(`${email}|${role}|${issuedAt}`))) {
+    return null;
+  }
+
+  return { email, role };
 }
 
 function isProtectedApi(pathname: string) {
@@ -65,28 +87,61 @@ function isProtectedApi(pathname: string) {
   );
 }
 
+// Areas only the super admin may reach. Enforced here so a new page under one
+// of these prefixes is gated the moment it exists, rather than relying on
+// whoever writes it to remember the role check.
+function isSuperAdminOnly(pathname: string) {
+  return (
+    pathname.startsWith("/admin/users") ||
+    pathname.startsWith("/admin/access") ||
+    pathname.startsWith("/api/admin/users")
+  );
+}
+
+// The reader-facing pages. A signed-in admin is sent back to the newsroom from
+// these, so an editorial session never wanders around the public site.
+function isPublicPage(pathname: string) {
+  return (
+    pathname === "/" ||
+    pathname === "/about" ||
+    pathname === "/search" ||
+    pathname.startsWith("/article/")
+  );
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isLoginPage = pathname === "/admin/login";
   const isAdminPage = pathname.startsWith("/admin") && !isLoginPage;
   const isProtected = isAdminPage || isProtectedApi(pathname);
-
-  const isAuthed = await hasValidAdminSession(request);
-
-  if (!isProtected && !isLoginPage) {
-    return NextResponse.next();
-  }
+  const isApi = pathname.startsWith("/api");
 
   if (!isProtected) {
+    // readAdminSession returns immediately when there is no cookie, so an
+    // anonymous reader pays a cookie lookup and nothing more.
+    if (isPublicPage(pathname) && (await readAdminSession(request))) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+
     return NextResponse.next();
   }
 
-  if (!isAuthed && pathname.startsWith("/api")) {
-    return NextResponse.json({ error: "Admin login required." }, { status: 401 });
+  const session = await readAdminSession(request);
+
+  if (!session) {
+    return isApi
+      ? NextResponse.json({ error: "Admin login required." }, { status: 401 })
+      : NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
-  if (!isAuthed) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+  // Signed in, but not allowed in this part of the newsroom.
+  if (session.role !== "super_admin" && isSuperAdminOnly(pathname)) {
+    return isApi
+      ? NextResponse.json(
+          { error: "Super admin access required." },
+          { status: 403 },
+        )
+      : NextResponse.redirect(new URL("/admin", request.url));
   }
 
   return NextResponse.next();

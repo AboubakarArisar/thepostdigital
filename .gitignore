@@ -63,3 +63,5 @@ CLAUDE.md
 .neon
 ./scripts
 /scripts*
+
+audit-report.md
