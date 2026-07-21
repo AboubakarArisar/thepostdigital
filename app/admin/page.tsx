@@ -52,7 +52,8 @@ export default async function AdminDashboard({
   const view = isViewKey(viewParam) ? viewParam : null;
 
   const isSuper = isSuperAdmin(session);
-  // A normal admin's dashboard only ever contains their own stories.
+  // getArticles() already relabels due-scheduled stories as published, so the
+  // dashboard badge is correct without a promotion write.
   const articles = articlesFor(await getArticles(), session);
   const liveArticles = articles.filter((article) => article.status !== "archived");
   const archivedArticles = articles.filter((article) => article.status === "archived");

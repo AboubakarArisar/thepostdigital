@@ -15,6 +15,9 @@ import { articleTextClass, directionFor, formatDateTime } from "@/lib/format";
 import { siteConfig } from "@/lib/site";
 import type { Article } from "@/lib/types";
 
+// Rendered dynamically, but the article-store read it triggers is cached at the
+// data layer (see lib/data.ts getArticles) and tag-busted on every write, so
+// crawler and repeat traffic no longer hits Neon per request.
 export const dynamic = "force-dynamic";
 
 // Fetched by both generateMetadata and the page; cache() collapses it to one read.

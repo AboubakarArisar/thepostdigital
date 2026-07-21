@@ -10,6 +10,9 @@ import { getPublishedArticles } from "@/lib/data";
 import { directionFor, formatDate } from "@/lib/format";
 import type { Language } from "@/lib/types";
 
+// The homepage reads ?language, so it is always dynamically rendered. The heavy
+// DB read it triggers is cached at the data layer (see lib/data.ts getArticles),
+// which is what actually keeps crawler traffic off Neon.
 export const dynamic = "force-dynamic";
 
 type HomeSearchParams = Promise<{

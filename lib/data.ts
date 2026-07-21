@@ -1,18 +1,32 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { revalidateTag, unstable_cache } from "next/cache";
+import { cache } from "react";
 import { categories, deskCategories, formatCategories } from "./categories";
 import {
   dbClearOtherTops,
   dbDeleteArticle,
   dbGetArticles,
-  dbPublishDueScheduled,
   dbUpsertArticle,
   hasDatabase,
 } from "./db";
 import type { AdminRole, Article } from "./types";
 
 export { categories, deskCategories, formatCategories };
+
+// Cache tag for the article store. Any write busts it so the next read repopulates.
+const ARTICLES_TAG = "articles";
+
+// Called by write paths (Route Handlers) after they mutate the DB, so the cached
+// read refreshes immediately instead of serving stale content until the
+// revalidate window ends. loadArticles already relabels due-scheduled stories as
+// published in memory, so no separate promotion write is needed anywhere.
+function invalidateArticles() {
+  // "max" = stale-while-revalidate: the next reader triggers a fresh DB read in
+  // the background. The single-argument form is deprecated in this Next version.
+  revalidateTag(ARTICLES_TAG, "max");
+}
 
 const bundledDataPath = path.join(process.cwd(), "data");
 const runtimeDataPath =
@@ -339,27 +353,32 @@ function normalizeSlug(value: string) {
   );
 }
 
-export async function getArticles() {
+// The last-resort snapshot bundled in the repo (data/articles.json). Used when
+// the database can't be reached — including when Neon returns 402 for an
+// exhausted data-transfer quota — so a DB outage degrades to slightly-stale
+// content instead of a 500 on every page.
+async function readBundledSnapshot(): Promise<Article[]> {
+  try {
+    return JSON.parse(await readFile(bundledStorePath, "utf8")) as Article[];
+  } catch {
+    return starterArticles;
+  }
+}
+
+// Reads the active store — Neon, or the Cloudinary/file store when DB_URL is
+// unset. No cache and no relabel here; those wrap it below so they apply to
+// every store identically.
+async function readArticleStore(): Promise<Article[]> {
   if (hasDatabase) {
-    const articles = await dbGetArticles();
-    const due = articles.filter(
-      (article) => article.status === "scheduled" && isLive(article),
-    );
-
-    // Nothing due is the normal case, so this costs no extra query. When
-    // something is due it is flipped to "published" for real, which keeps the
-    // dashboard badge and the editor honest rather than saying "scheduled"
-    // forever. isLive() still guards visibility, so a story is never late.
-    if (due.length === 0) return articles;
-
-    await dbPublishDueScheduled();
-    const promoted = new Set(due.map((article) => article.slug));
-
-    return articles.map((article) =>
-      promoted.has(article.slug)
-        ? { ...article, status: "published" as const }
-        : article,
-    );
+    try {
+      return await dbGetArticles();
+    } catch (error) {
+      // Reads fall back to the bundled snapshot so the public site stays up if
+      // Neon is unreachable (e.g. 402 quota). Writes still surface the real
+      // error to the admin — we must not pretend a write succeeded.
+      console.error("Article DB read failed; serving bundled snapshot.", error);
+      return readBundledSnapshot();
+    }
   }
 
   if (hasCloudinaryStore()) {
@@ -385,6 +404,35 @@ export async function getArticles() {
     await writeArticles(seedArticles);
     return seedArticles;
   }
+}
+
+// Cross-request cache for the one expensive read, shared by every store — Neon
+// and Cloudinary both have free-tier bandwidth caps, so both benefit. Without
+// it every request (including every crawler hit on ~120 article pages) re-read
+// the whole store, which is what drained the Neon quota. Served to all requests
+// for `revalidate` seconds; the "articles" tag is busted on every write
+// (saveArticle/updateArticle/deleteArticle) so edits show promptly.
+const cachedReadStore = unstable_cache(
+  () => readArticleStore(),
+  ["articles-all"],
+  { tags: [ARTICLES_TAG], revalidate: 120 },
+);
+
+// React cache() dedupes within a single render; unstable_cache dedupes across
+// requests.
+export const getArticles = cache(loadArticles);
+
+async function loadArticles(): Promise<Article[]> {
+  const articles = await cachedReadStore();
+
+  // Relabel scheduled stories whose time has passed as published — in memory,
+  // for every store. Visibility was already correct via isLive(); this keeps
+  // the admin dashboard badge honest without a write on the read path.
+  return articles.map((article) =>
+    article.status === "scheduled" && isLive(article)
+      ? { ...article, status: "published" as const }
+      : article,
+  );
 }
 
 export async function saveArticle(article: Article) {
@@ -417,10 +465,12 @@ export async function saveArticle(article: Article) {
   if (hasDatabase) {
     await dbUpsertArticle(savedArticle);
     await dbClearOtherTops(savedArticle);
+    invalidateArticles();
     return savedArticle;
   }
 
   await writeArticles(enforceSingleTop([savedArticle, ...articles], savedArticle));
+  invalidateArticles();
   return savedArticle;
 }
 
@@ -459,21 +509,28 @@ export async function updateArticle(slug: string, article: Article) {
     // The slug is the primary key, so a rename leaves the old row behind.
     if (nextSlug !== slug) await dbDeleteArticle(slug);
     await dbClearOtherTops(updatedArticle);
+    invalidateArticles();
     return updatedArticle;
   }
 
   const nextArticles = [...articles];
   nextArticles[index] = updatedArticle;
   await writeArticles(enforceSingleTop(nextArticles, updatedArticle));
+  invalidateArticles();
   return updatedArticle;
 }
 
 export async function deleteArticle(slug: string) {
-  if (hasDatabase) return dbDeleteArticle(slug);
+  if (hasDatabase) {
+    const removed = await dbDeleteArticle(slug);
+    invalidateArticles();
+    return removed;
+  }
 
   const articles = await getArticles();
   const nextArticles = articles.filter((article) => article.slug !== slug);
   await writeArticles(nextArticles);
+  invalidateArticles();
   return nextArticles.length !== articles.length;
 }
 
@@ -511,6 +568,9 @@ export async function getPublishedArticles() {
 }
 
 export async function getArticleBySlug(slug: string) {
+  // Served from the cached list — the article page already loads it for the
+  // header, related, and top-story rails, so finding one story in it costs no
+  // extra query.
   return (await getArticles()).find((article) => article.slug === slug);
 }
 

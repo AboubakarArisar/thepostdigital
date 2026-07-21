@@ -66,6 +66,7 @@ export async function dbGetArticles(): Promise<Article[]> {
   return rows.map((row) => row.data as Article);
 }
 
+
 export async function dbUpsertArticle(article: Article) {
   await client()`
     INSERT INTO articles (slug, language, status, category, published_at, priority, data)
@@ -102,18 +103,6 @@ export async function dbClearOtherTops(article: Article) {
      WHERE language = ${article.language}
        AND slug <> ${article.slug}
        AND priority >= 2`;
-}
-
-// Promotes scheduled stories whose time has arrived to real published rows, so
-// the stored status matches what readers see instead of saying "scheduled"
-// forever. One indexed statement, and safe to run concurrently.
-export async function dbPublishDueScheduled() {
-  await client()`
-    UPDATE articles
-       SET status = 'published',
-           data = jsonb_set(data, '{status}', '"published"')
-     WHERE status = 'scheduled'
-       AND published_at <= now()`;
 }
 
 export async function dbGetAdminUsers(): Promise<AdminUser[]> {

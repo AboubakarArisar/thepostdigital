@@ -3,9 +3,9 @@ import { categories } from "@/lib/categories";
 import { getPublishedArticles } from "@/lib/data";
 import { siteConfig } from "@/lib/site";
 
-// Articles are stored in a runtime data store, so the sitemap is generated per
-// request rather than at build time.
-export const dynamic = "force-dynamic";
+// Crawlers request the sitemap often. Cache it for an hour so each hit does not
+// trigger a full-table read.
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteConfig.url;
