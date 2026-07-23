@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { categories } from "@/lib/categories";
-import { getPublishedArticles } from "@/lib/data";
+import { getCards } from "@/lib/data";
 import { formatToday } from "@/lib/format";
 import type { Language } from "@/lib/types";
 import { SiteLogo } from "./SiteLogo";
@@ -20,11 +20,12 @@ const labels: Record<
 };
 
 export async function Header({ language = "en" }: { language?: Language }) {
-  const articles = await getPublishedArticles();
-  const recentArticles = [...articles]
-    .filter((article) => article.language === language)
-    .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt))
-    .slice(0, 2);
+  // Only the 2 newest live stories in this language — a tiny, body-stripped read.
+  const recentArticles = await getCards({
+    liveOnly: true,
+    language,
+    limit: 2,
+  });
   const copy = labels[language];
 
   return (

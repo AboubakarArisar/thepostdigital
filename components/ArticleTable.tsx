@@ -338,7 +338,7 @@ export function ArticleTable({
               <td className="p-3">{languageName(article.language)}</td>
               <td className="p-3">
                 <span
-                  className={`border border-wheat-900 px-2 py-1 text-white text-xs font-black uppercase tracking-[0.12em] ${statusClass[article.status]}`}
+                  className={`border border-wheat-900 px-2 py-1 text-black text-xs font-black uppercase tracking-[0.12em] ${statusClass[article.status]}`}
                 >
                   {article.status}
                 </span>

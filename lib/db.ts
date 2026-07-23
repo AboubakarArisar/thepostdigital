@@ -35,6 +35,16 @@ export async function ensureSchema() {
     CREATE INDEX IF NOT EXISTS articles_feed_idx
       ON articles (status, language, published_at DESC)`;
 
+  // Related-story lookups filter by language + category, newest first.
+  await db`
+    CREATE INDEX IF NOT EXISTS articles_related_idx
+      ON articles (language, category, published_at DESC)`;
+
+  // "Top story" lead lookup — only the handful of priority>=2 rows are indexed.
+  await db`
+    CREATE INDEX IF NOT EXISTS articles_top_idx
+      ON articles (language, published_at DESC) WHERE priority >= 2`;
+
   // Admin accounts are few and every field is scalar, so they get real columns
   // rather than a JSON blob — a credential store should be legible.
   await db`
@@ -59,10 +69,132 @@ export async function ensureSchema() {
     )`;
 }
 
+// EXPORT-ONLY. Reads every full article body — never call from a render or API
+// read path. It exists solely for a deliberate full backup/export. All normal
+// reads use dbGetCards (body stripped) or dbGetArticleBySlug (one row).
 export async function dbGetArticles(): Promise<Article[]> {
   const rows = await client()`
     SELECT data FROM articles ORDER BY published_at DESC`;
 
+  return rows.map((row) => row.data as Article);
+}
+
+// One full article (with body) — the only place the heavy body column is read,
+// and only ever one row.
+export async function dbGetArticleBySlug(slug: string): Promise<Article | null> {
+  const rows = await client()`
+    SELECT data FROM articles WHERE slug = ${slug} LIMIT 1`;
+
+  return rows.length ? (rows[0].data as Article) : null;
+}
+
+export type CardFilters = {
+  language?: string;
+  category?: string;
+  excludeSlug?: string;
+  priorityMin?: number;
+  status?: string;
+  // published, or scheduled whose time has passed.
+  liveOnly?: boolean;
+  // ILIKE across title/excerpt/author/body/category/tags.
+  search?: string;
+  orderBy?: "priority" | "date";
+  limit?: number;
+  offset?: number;
+};
+
+// Builds a parameterized card query. `data - 'body'` drops the (heavy) body
+// array server-side, so listings never transfer article bodies.
+function buildCardQuery(f: CardFilters) {
+  const conds: string[] = [];
+  const params: unknown[] = [];
+  const p = (value: unknown) => {
+    params.push(value);
+    return `$${params.length}`;
+  };
+
+  if (f.liveOnly) {
+    conds.push(
+      `(status = 'published' OR (status = 'scheduled' AND published_at <= now()))`,
+    );
+  }
+  if (f.language) conds.push(`language = ${p(f.language)}`);
+  if (f.category) conds.push(`category = ${p(f.category)}`);
+  if (f.excludeSlug) conds.push(`slug <> ${p(f.excludeSlug)}`);
+  if (f.priorityMin != null) conds.push(`priority >= ${p(f.priorityMin)}`);
+  if (f.status) conds.push(`status = ${p(f.status)}`);
+  if (f.search) {
+    const q = p(`%${f.search}%`);
+    conds.push(
+      `(data->>'title' ILIKE ${q} OR data->>'excerpt' ILIKE ${q} OR ` +
+        `data->>'author' ILIKE ${q} OR data->>'body' ILIKE ${q} OR ` +
+        `data->>'category' ILIKE ${q} OR data->>'tags' ILIKE ${q})`,
+    );
+  }
+
+  const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+  const whereParams = [...params]; // snapshot before LIMIT/OFFSET for COUNT
+  const order =
+    f.orderBy === "priority"
+      ? "ORDER BY priority DESC, published_at DESC"
+      : "ORDER BY published_at DESC";
+
+  let tail = ` ${order}`;
+  if (f.limit != null) tail += ` LIMIT ${p(f.limit)}`;
+  if (f.offset != null) tail += ` OFFSET ${p(f.offset)}`;
+
+  return {
+    dataText: `SELECT data - 'body' AS card FROM articles ${where}${tail}`,
+    dataParams: params,
+    countText: `SELECT count(*)::int AS n FROM articles ${where}`,
+    countParams: whereParams,
+  };
+}
+
+export async function dbGetCards(f: CardFilters): Promise<Article[]> {
+  const { dataText, dataParams } = buildCardQuery(f);
+  const rows = (await client().query(dataText, dataParams)) as {
+    card: Record<string, unknown>;
+  }[];
+  // body was stripped server-side; card components never read it.
+  return rows.map((row) => ({ ...row.card, body: [] }) as unknown as Article);
+}
+
+export async function dbCountCards(f: CardFilters): Promise<number> {
+  const { countText, countParams } = buildCardQuery(f);
+  const rows = (await client().query(countText, countParams)) as { n: number }[];
+  return rows[0]?.n ?? 0;
+}
+
+// Slugs only — tiny read used by the create path to avoid slug collisions.
+export async function dbGetAllSlugs(): Promise<string[]> {
+  const rows = await client()`SELECT slug FROM articles`;
+  return rows.map((row) => row.slug as string);
+}
+
+export async function dbSlugExists(slug: string, exceptSlug?: string) {
+  const rows = exceptSlug
+    ? await client()`SELECT 1 FROM articles WHERE slug = ${slug} AND slug <> ${exceptSlug} LIMIT 1`
+    : await client()`SELECT 1 FROM articles WHERE slug = ${slug} LIMIT 1`;
+  return rows.length > 0;
+}
+
+// Content-dedup for the create path: only same-title rows are read (usually 0),
+// so the body comparison downstream costs almost no transfer.
+export async function dbFindByTitle(
+  title: string,
+  language: string,
+  createdBy: string | undefined,
+): Promise<Article[]> {
+  const rows = createdBy
+    ? await client()`
+        SELECT data FROM articles
+         WHERE data->>'title' = ${title} AND language = ${language}
+           AND data->>'createdBy' = ${createdBy}`
+    : await client()`
+        SELECT data FROM articles
+         WHERE data->>'title' = ${title} AND language = ${language}
+           AND (data->>'createdBy') IS NULL`;
   return rows.map((row) => row.data as Article);
 }
 

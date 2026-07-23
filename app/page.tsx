@@ -6,7 +6,7 @@ import { ArticleImage } from "@/components/ArticleImage";
 import { Pagination } from "@/components/Pagination";
 import { SocialConnect } from "@/components/SocialConnect";
 import { getAdminSession } from "@/lib/auth";
-import { getPublishedArticles } from "@/lib/data";
+import { countCards, getCards } from "@/lib/data";
 import { directionFor, formatDate } from "@/lib/format";
 import type { Language } from "@/lib/types";
 
@@ -104,18 +104,17 @@ export default async function Home({
   searchParams: HomeSearchParams;
 }) {
   const adminSession = await getAdminSession();
-  const allPublished = await getPublishedArticles();
   const params = await searchParams;
   const selectedLanguage = normalizeLanguage(params.language);
-  const languageCounts = {
-    en: allPublished.filter((article) => article.language === "en").length,
-    ur: allPublished.filter((article) => article.language === "ur").length,
-  };
-  const published = allPublished.filter(
-    (article) => article.language === selectedLanguage,
-  );
+  // Two tiny COUNT queries instead of loading every article to count them.
+  const [enCount, urCount] = await Promise.all([
+    countCards({ liveOnly: true, language: "en" }),
+    countCards({ liveOnly: true, language: "ur" }),
+  ]);
+  const languageCounts = { en: enCount, ur: urCount };
+  const totalForLanguage = selectedLanguage === "en" ? enCount : urCount;
 
-  if (allPublished.length === 0) {
+  if (enCount + urCount === 0) {
     return (
       <>
         <Header language={selectedLanguage} />
@@ -138,7 +137,7 @@ export default async function Home({
     );
   }
 
-  if (published.length === 0) {
+  if (totalForLanguage === 0) {
     const selectedLabel = selectedLanguage === "ur" ? "اردو" : "EN";
 
     return (
@@ -167,30 +166,33 @@ export default async function Home({
     );
   }
 
-  // Highest priority wins the lead slot; ties (incl. the default 0) fall back
-  // to newest-first, so untouched stories behave exactly as before.
-  const ranked = [...published].sort(
-    (a, b) =>
-      (b.priority ?? 0) - (a.priority ?? 0) ||
-      +new Date(b.publishedAt) - +new Date(a.publishedAt),
-  );
-  const lead = ranked[0];
-  const secondary = ranked.slice(1);
-  const heroCards = secondary.slice(0, 4);
-
-  // Everything past the hero is paginated. The hero (lead + 4 cards) only
-  // appears on the first page; later pages are a plain grid of more stories.
-  const moreStoriesPool = secondary.slice(4);
-  const totalPages = Math.max(
-    1,
-    Math.ceil(moreStoriesPool.length / MORE_STORIES_PER_PAGE),
-  );
+  // Ordering (priority desc, then newest) happens in SQL. The hero is the first
+  // 5 (lead + 4 cards); everything past index 5 is the paginated "more stories".
+  const moreCount = Math.max(0, totalForLanguage - 5);
+  const totalPages = Math.max(1, Math.ceil(moreCount / MORE_STORIES_PER_PAGE));
   const currentPage = Math.min(normalizePage(params.page), totalPages);
   const showHero = currentPage === 1;
-  const pageStories = moreStoriesPool.slice(
-    (currentPage - 1) * MORE_STORIES_PER_PAGE,
-    currentPage * MORE_STORIES_PER_PAGE,
-  );
+
+  // Lead + hero cards only on page 1 — a 5-row card query.
+  const heroRows = showHero
+    ? await getCards({
+        liveOnly: true,
+        language: selectedLanguage,
+        orderBy: "priority",
+        limit: 5,
+      })
+    : [];
+  const lead = heroRows[0];
+  const heroCards = heroRows.slice(1, 5);
+
+  // The "more stories" grid — a 12-row window, body stripped.
+  const pageStories = await getCards({
+    liveOnly: true,
+    language: selectedLanguage,
+    orderBy: "priority",
+    limit: MORE_STORIES_PER_PAGE,
+    offset: 5 + (currentPage - 1) * MORE_STORIES_PER_PAGE,
+  });
   const createHref = (page: number) => {
     const query = new URLSearchParams();
     if (selectedLanguage === "en") query.set("language", "en");
@@ -199,9 +201,10 @@ export default async function Home({
     return qs ? `/?${qs}` : "/";
   };
 
+  // lead only exists on page 1 (showHero); guard so page 2+ never touches it.
   const leadTextClass =
-    lead.language === "ur" ? "font-urdu text-right" : "text-left";
-  const leadBlock = (
+    lead?.language === "ur" ? "font-urdu text-right" : "text-left";
+  const leadBlock = lead ? (
     <>
       <Link
         href={`/article/${encodeURIComponent(lead.slug)}`}
@@ -222,7 +225,7 @@ export default async function Home({
       )}
       <p className="mt-3 text-sm text-muted">{formatDate(lead.publishedAt)}</p>
     </>
-  );
+  ) : null;
 
   return (
     <>
@@ -235,6 +238,7 @@ export default async function Home({
         <section className="mb-8 min-h-[90px]" aria-hidden="true" />
 
         {showHero &&
+          lead &&
           (heroCards.length > 0 ? (
             <section
               dir={directionFor(selectedLanguage)}

@@ -6,7 +6,7 @@ import {
   canManageArticle,
   deleteArticle,
   getArticleBySlug,
-  getArticles,
+  getCards,
   saveArticle,
 } from "@/lib/data";
 import type {
@@ -35,8 +35,9 @@ export async function GET() {
     return NextResponse.json({ error: "Admin login required." }, { status: 401 });
   }
 
+  // Admin table needs no article bodies — body-stripped cards.
   return NextResponse.json({
-    articles: articlesFor(await getArticles(), session),
+    articles: articlesFor(await getCards(), session),
   });
 }
 

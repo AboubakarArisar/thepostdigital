@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Pagination } from "@/components/Pagination";
 import { SearchFilters } from "@/components/SearchFilters";
 import { categories } from "@/lib/categories";
-import { getArticles, isLive } from "@/lib/data";
+import { getCards } from "@/lib/data";
 import type { Article, Language } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -82,30 +82,12 @@ function matchesDate(article: Article, dateFilter: string) {
   return true;
 }
 
-function matchesQuery(article: Article, query: string) {
-  if (!query) return true;
-
-  const searchText = [
-    article.title,
-    article.excerpt,
-    article.author,
-    article.category,
-    article.contentType,
-    article.tags.join(" "),
-    article.body.join(" "),
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return searchText.includes(query.toLowerCase());
-}
 
 export default async function SearchPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const articles = await getArticles();
   const params = await searchParams;
   const selectedCategory = firstParam(params.category) ?? "";
   const selectedDate = firstParam(params.date) ?? "";
@@ -113,11 +95,15 @@ export default async function SearchPage({
   const query = firstParam(params.q) ?? "";
   const sort = firstParam(params.sort) ?? "";
   const language = isLanguage(selectedLanguage) ? selectedLanguage : "ur";
-  const filteredArticles = articles
-    .filter((article) => matchesQuery(article, query))
+  // Text search (ILIKE, incl. body), language, and live-only run in SQL and
+  // return body-stripped cards. Category/date/sort refine that small set here.
+  const baseCards = await getCards({
+    liveOnly: true,
+    language,
+    search: query || undefined,
+  });
+  const filteredArticles = baseCards
     .filter((article) => !selectedCategory || matchesCategory(article, selectedCategory))
-    .filter((article) => !language || article.language === language)
-    .filter((article) => isLive(article))
     .filter((article) => matchesDate(article, selectedDate))
     .sort((a, b) => {
       if (sort === "popular") return b.views - a.views;

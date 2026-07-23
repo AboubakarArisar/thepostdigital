@@ -1,32 +1,26 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { revalidateTag, unstable_cache } from "next/cache";
 import { cache } from "react";
+import { CACHE_TTL, cached, invalidateArticlesCache } from "./cache";
 import { categories, deskCategories, formatCategories } from "./categories";
 import {
+  type CardFilters,
   dbClearOtherTops,
+  dbCountCards,
   dbDeleteArticle,
+  dbFindByTitle,
+  dbGetAllSlugs,
+  dbGetArticleBySlug,
   dbGetArticles,
+  dbGetCards,
+  dbSlugExists,
   dbUpsertArticle,
   hasDatabase,
 } from "./db";
 import type { AdminRole, Article } from "./types";
 
 export { categories, deskCategories, formatCategories };
-
-// Cache tag for the article store. Any write busts it so the next read repopulates.
-const ARTICLES_TAG = "articles";
-
-// Called by write paths (Route Handlers) after they mutate the DB, so the cached
-// read refreshes immediately instead of serving stale content until the
-// revalidate window ends. loadArticles already relabels due-scheduled stories as
-// published in memory, so no separate promotion write is needed anywhere.
-function invalidateArticles() {
-  // "max" = stale-while-revalidate: the next reader triggers a fresh DB read in
-  // the background. The single-argument form is deprecated in this Next version.
-  revalidateTag(ARTICLES_TAG, "max");
-}
 
 const bundledDataPath = path.join(process.cwd(), "data");
 const runtimeDataPath =
@@ -36,6 +30,11 @@ const storePath = path.join(runtimeDataPath, "articles.json");
 const bundledStorePath = path.join(bundledDataPath, "articles.json");
 const cloudinaryArticlesPublicId =
   process.env.CLOUDINARY_ARTICLES_PUBLIC_ID || "newsclient/articles.json";
+
+// How long a just-written local store copy is trusted before we re-sync from
+// Cloudinary. Long enough that the publisher's own instance reads its fresh
+// write; short enough that other instances converge quickly.
+const FRESH_WINDOW_MS = 20_000;
 
 export const starterArticles: Article[] = [
   {
@@ -237,11 +236,15 @@ export const starterArticles: Article[] = [
 ];
 
 async function writeArticles(articles: Article[]) {
+  // Local first: it is the primary READ source (see readArticleStore), so a
+  // publish is visible on this instance the instant the write returns.
+  // Cloudinary is written second for durability / cross-instance sync — its
+  // delivery URL lags several seconds, which is why it must not be the reader.
+  await writeLocalArticles(articles);
+
   if (hasCloudinaryStore()) {
     await writeCloudinaryArticles(articles);
   }
-
-  await writeLocalArticles(articles);
 }
 
 async function writeLocalArticles(articles: Article[]) {
@@ -313,13 +316,31 @@ async function writeCloudinaryArticles(articles: Article[]) {
   form.append("timestamp", timestamp);
   form.append("signature", signCloudinaryParams(params, apiSecret));
 
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
-    {
-      method: "POST",
-      body: form,
-    },
-  );
+  // Retry a couple of times so a transient network blip does not fail an
+  // otherwise-valid publish (the local copy is already written by this point).
+  let response: Response | undefined;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
+        { method: "POST", body: form },
+      );
+      break;
+    } catch (error) {
+      lastError = error;
+      // Rebuild is unnecessary; the FormData is reusable. Brief backoff.
+      await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+    }
+  }
+
+  if (!response) {
+    throw new Error(
+      `Cloudinary article store is unreachable: ${
+        lastError instanceof Error ? lastError.message : "network error"
+      }`,
+    );
+  }
 
   if (!response.ok) {
     const result = (await response.json().catch(() => null)) as {
@@ -381,24 +402,34 @@ async function readArticleStore(): Promise<Article[]> {
     }
   }
 
+  // A save writes the local file synchronously, so just after a publish the
+  // local copy is fresh and reflects it immediately — whereas Cloudinary's
+  // delivery URL lags the upload ~5s (that lag was the "shows on the 2nd try"
+  // bug). But a serverless instance that only ever reads would otherwise keep a
+  // stale local copy forever, so we trust local only inside a short window after
+  // its last write; past that we re-sync from Cloudinary. This bounds
+  // cross-instance staleness to ~FRESH_WINDOW while keeping the publisher's own
+  // instance instant.
+  try {
+    const info = await stat(storePath);
+    if (Date.now() - info.mtimeMs < FRESH_WINDOW_MS) {
+      return JSON.parse(await readFile(storePath, "utf8")) as Article[];
+    }
+  } catch {
+    // No local file yet (cold start) — fall through to seed it below.
+  }
+
   if (hasCloudinaryStore()) {
     const cloudinaryArticles = await readCloudinaryArticles();
-
     if (cloudinaryArticles) {
       await writeLocalArticles(cloudinaryArticles);
       return cloudinaryArticles;
     }
   }
 
+  // Cloudinary unavailable: use a stale local copy if we have one, else seed.
   try {
-    const contents = await readFile(storePath, "utf8");
-    const articles = JSON.parse(contents) as Article[];
-
-    if (hasCloudinaryStore()) {
-      await writeCloudinaryArticles(articles);
-    }
-
-    return articles;
+    return JSON.parse(await readFile(storePath, "utf8")) as Article[];
   } catch {
     const seedArticles = (await readBundledArticles()) ?? starterArticles;
     await writeArticles(seedArticles);
@@ -406,24 +437,17 @@ async function readArticleStore(): Promise<Article[]> {
   }
 }
 
-// Cross-request cache for the one expensive read, shared by every store — Neon
-// and Cloudinary both have free-tier bandwidth caps, so both benefit. Without
-// it every request (including every crawler hit on ~120 article pages) re-read
-// the whole store, which is what drained the Neon quota. Served to all requests
-// for `revalidate` seconds; the "articles" tag is busted on every write
-// (saveArticle/updateArticle/deleteArticle) so edits show promptly.
-const cachedReadStore = unstable_cache(
-  () => readArticleStore(),
-  ["articles-all"],
-  { tags: [ARTICLES_TAG], revalidate: 120 },
-);
-
-// React cache() dedupes within a single render; unstable_cache dedupes across
-// requests.
+// React cache() dedupes within a single render so the header, the page body,
+// related, and top-story rails share ONE store read per request. We intentionally
+// do NOT cache across requests: a cross-request cache made publishes appear only
+// on the second load (stale-while-revalidate), which is not acceptable for a
+// newsroom. The Cloudinary store's bandwidth easily covers one read per render.
+// (If Neon is ever re-enabled, add cross-request caching back with immediate
+// read-your-writes invalidation — Server Actions + updateTag — not "max".)
 export const getArticles = cache(loadArticles);
 
 async function loadArticles(): Promise<Article[]> {
-  const articles = await cachedReadStore();
+  const articles = await readArticleStore();
 
   // Relabel scheduled stories whose time has passed as published — in memory,
   // for every store. Visibility was already correct via isLive(); this keeps
@@ -435,22 +459,43 @@ async function loadArticles(): Promise<Article[]> {
   );
 }
 
-export async function saveArticle(article: Article) {
-  const articles = await getArticles();
-  const matchingArticle = articles.find(
-    (item) =>
-      item.title.trim() === article.title.trim() &&
-      (item.excerpt || "").trim() === (article.excerpt || "").trim() &&
-      item.body.join("\n\n").trim() === article.body.join("\n\n").trim() &&
-      item.language === article.language &&
-      item.createdBy === article.createdBy,
+// Guards against an accidental double-submit of the same story.
+function sameContent(a: Article, b: Article) {
+  return (
+    a.title.trim() === b.title.trim() &&
+    (a.excerpt || "").trim() === (b.excerpt || "").trim() &&
+    a.body.join("\n\n").trim() === b.body.join("\n\n").trim() &&
+    a.language === b.language &&
+    a.createdBy === b.createdBy
   );
+}
+
+export async function saveArticle(article: Article) {
+  // Dedup + slug-collision. In DB mode both are targeted queries (same-title
+  // rows only, and a slugs-only list) — never a full-table body read. The file
+  // fallback still reads the whole store, but that path only runs if the DB is
+  // unreachable.
+  let matchingArticle: Article | undefined;
+  let existingSlugs: Set<string>;
+
+  if (hasDatabase) {
+    const sameTitle = await dbFindByTitle(
+      article.title.trim(),
+      article.language,
+      article.createdBy,
+    );
+    matchingArticle = sameTitle.find((item) => sameContent(item, article));
+    existingSlugs = new Set(await dbGetAllSlugs());
+  } else {
+    const articles = await getArticles();
+    matchingArticle = articles.find((item) => sameContent(item, article));
+    existingSlugs = new Set(articles.map((item) => item.slug));
+  }
 
   if (matchingArticle) {
     return matchingArticle;
   }
 
-  const existingSlugs = new Set(articles.map((item) => item.slug));
   const baseSlug = normalizeSlug(article.slug || article.title);
   let slug = baseSlug;
   let counter = 2;
@@ -465,12 +510,13 @@ export async function saveArticle(article: Article) {
   if (hasDatabase) {
     await dbUpsertArticle(savedArticle);
     await dbClearOtherTops(savedArticle);
-    invalidateArticles();
+    await invalidateArticlesCache();
     return savedArticle;
   }
 
+  const articles = await getArticles();
   await writeArticles(enforceSingleTop([savedArticle, ...articles], savedArticle));
-  invalidateArticles();
+  await invalidateArticlesCache();
   return savedArticle;
 }
 
@@ -488,49 +534,47 @@ function enforceSingleTop(articles: Article[], featured: Article) {
 }
 
 export async function updateArticle(slug: string, article: Article) {
-  const articles = await getArticles();
-  const index = articles.findIndex((item) => item.slug === slug);
-
-  if (index === -1) return null;
-
   const nextSlug = normalizeSlug(article.slug || slug);
-  const duplicateSlug = articles.some(
-    (item) => item.slug === nextSlug && item.slug !== slug,
-  );
-
-  if (duplicateSlug) {
-    throw new Error("Another story already uses this slug.");
-  }
-
   const updatedArticle = { ...article, slug: nextSlug };
 
   if (hasDatabase) {
+    // Existence + rename-collision as two tiny existence queries — no full read.
+    if (!(await dbSlugExists(slug))) return null;
+    if (nextSlug !== slug && (await dbSlugExists(nextSlug, slug))) {
+      throw new Error("Another story already uses this slug.");
+    }
     await dbUpsertArticle(updatedArticle);
     // The slug is the primary key, so a rename leaves the old row behind.
     if (nextSlug !== slug) await dbDeleteArticle(slug);
     await dbClearOtherTops(updatedArticle);
-    invalidateArticles();
+    await invalidateArticlesCache();
     return updatedArticle;
   }
 
+  const articles = await getArticles();
+  const index = articles.findIndex((item) => item.slug === slug);
+  if (index === -1) return null;
+  if (articles.some((item) => item.slug === nextSlug && item.slug !== slug)) {
+    throw new Error("Another story already uses this slug.");
+  }
   const nextArticles = [...articles];
   nextArticles[index] = updatedArticle;
   await writeArticles(enforceSingleTop(nextArticles, updatedArticle));
-  invalidateArticles();
+  await invalidateArticlesCache();
   return updatedArticle;
 }
 
 export async function deleteArticle(slug: string) {
   if (hasDatabase) {
     const removed = await dbDeleteArticle(slug);
-    invalidateArticles();
+    await invalidateArticlesCache();
     return removed;
   }
 
   const articles = await getArticles();
   const nextArticles = articles.filter((article) => article.slug !== slug);
   await writeArticles(nextArticles);
-  invalidateArticles();
+  await invalidateArticlesCache();
   return nextArticles.length !== articles.length;
 }
 
@@ -562,40 +606,138 @@ export function isLive(article: Article, now = Date.now()) {
   );
 }
 
-export async function getPublishedArticles() {
-  const now = Date.now();
-  return (await getArticles()).filter((article) => isLive(article, now));
+// Relabel a due-scheduled story as published, in memory, so listings and the
+// admin badge agree with what readers see. Visibility itself is isLive().
+function relabel(article: Article): Article {
+  return article.status === "scheduled" && isLive(article)
+    ? { ...article, status: "published" as const }
+    : article;
 }
 
+// Applies the card filters in JS — the fallback when the DB is unreachable, so
+// the site still renders from the bundled/Cloudinary store.
+function filterCardsFromStore(all: Article[], f: CardFilters): Article[] {
+  const now = Date.now();
+  const q = f.search?.toLowerCase();
+  let rows = all.filter((a) => {
+    if (f.liveOnly && !isLive(a, now)) return false;
+    if (f.status && a.status !== f.status) return false;
+    if (f.language && a.language !== f.language) return false;
+    if (f.category && a.category !== f.category) return false;
+    if (f.excludeSlug && a.slug === f.excludeSlug) return false;
+    if (f.priorityMin != null && (a.priority ?? 0) < f.priorityMin) return false;
+    if (q) {
+      const hay = [a.title, a.excerpt, a.author, a.body.join(" "), a.category, a.tags.join(" ")]
+        .join(" ")
+        .toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  rows = rows.sort((a, b) =>
+    f.orderBy === "priority"
+      ? (b.priority ?? 0) - (a.priority ?? 0) ||
+        +new Date(b.publishedAt) - +new Date(a.publishedAt)
+      : +new Date(b.publishedAt) - +new Date(a.publishedAt),
+  );
+  const start = f.offset ?? 0;
+  return f.limit != null ? rows.slice(start, start + f.limit) : rows.slice(start);
+}
+
+// The workhorse read: a body-stripped list for every listing/render that does
+// not show article bodies. DB mode => a single indexed query with LIMIT.
+export async function getCards(opts: CardFilters = {}): Promise<Article[]> {
+  if (hasDatabase) {
+    try {
+      return await cached("cards", opts, CACHE_TTL.cards, async () =>
+        (await dbGetCards(opts)).map(relabel),
+      );
+    } catch (error) {
+      console.error("Card DB read failed; using store fallback.", error);
+    }
+  }
+  // Filter on raw status (isLive handles due-scheduled), then relabel for display.
+  return filterCardsFromStore(await readArticleStore(), opts).map(relabel);
+}
+
+export async function countCards(opts: CardFilters = {}): Promise<number> {
+  if (hasDatabase) {
+    try {
+      return await cached("count", opts, CACHE_TTL.count, () =>
+        dbCountCards(opts),
+      );
+    } catch (error) {
+      console.error("Card count DB read failed; using store fallback.", error);
+    }
+  }
+  return filterCardsFromStore(await readArticleStore(), {
+    ...opts,
+    limit: undefined,
+    offset: undefined,
+  }).length;
+}
+
+// One full article (with body). DB mode => a single-row read; the only place the
+// body column is ever transferred, and only for one story.
+export async function getFullArticleBySlug(
+  slug: string,
+): Promise<Article | undefined> {
+  if (hasDatabase) {
+    try {
+      return await cached("article", slug, CACHE_TTL.article, async () => {
+        const article = await dbGetArticleBySlug(slug);
+        return article ? relabel(article) : undefined;
+      });
+    } catch (error) {
+      console.error("Single-article DB read failed; using store.", error);
+    }
+  }
+  const found = (await readArticleStore()).find((a) => a.slug === slug);
+  return found ? relabel(found) : undefined;
+}
+
+// All live cards (body stripped). Used by the sitemap; other listings call
+// getCards directly with tighter filters.
+export async function getPublishedArticles() {
+  return getCards({ liveOnly: true });
+}
+
+// Admin/edit lookup — full article, any status.
 export async function getArticleBySlug(slug: string) {
-  // Served from the cached list — the article page already loads it for the
-  // header, related, and top-story rails, so finding one story in it costs no
-  // extra query.
-  return (await getArticles()).find((article) => article.slug === slug);
+  return getFullArticleBySlug(slug);
 }
 
 export async function getPublishedArticleBySlug(slug: string) {
-  const article = await getArticleBySlug(slug);
+  const article = await getFullArticleBySlug(slug);
   return article && isLive(article) ? article : undefined;
 }
 
+// Same-language related stories, same-category first, then filled with other
+// same-language stories — two small LIMITed card queries, never the full table.
 export async function getRelatedArticles(article: Article) {
-  const published = await getPublishedArticles();
-  // Only surface stories in the same language as the article being read, so an
-  // Urdu story never lists English related items (and vice versa).
-  const sameLanguage = published.filter(
-    (item) => item.slug !== article.slug && item.language === article.language,
-  );
-  const related = sameLanguage
-    .filter((item) => item.category === article.category)
-    .concat(sameLanguage);
-  const seenSlugs = new Set<string>();
+  const sameCategory = await getCards({
+    liveOnly: true,
+    language: article.language,
+    category: article.category,
+    excludeSlug: article.slug,
+    limit: 3,
+  });
+  if (sameCategory.length >= 3) return sameCategory.slice(0, 3);
 
-  return related
-    .filter((item) => {
-      if (seenSlugs.has(item.slug)) return false;
-      seenSlugs.add(item.slug);
-      return true;
-    })
-    .slice(0, 3);
+  const filler = await getCards({
+    liveOnly: true,
+    language: article.language,
+    excludeSlug: article.slug,
+    limit: 6,
+  });
+  const seen = new Set(sameCategory.map((a) => a.slug));
+  const merged = [...sameCategory];
+  for (const item of filler) {
+    if (merged.length >= 3) break;
+    if (!seen.has(item.slug)) {
+      seen.add(item.slug);
+      merged.push(item);
+    }
+  }
+  return merged.slice(0, 3);
 }

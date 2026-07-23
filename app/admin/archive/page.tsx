@@ -2,7 +2,7 @@ import { AdminSidebar } from "@/components/AdminSidebar";
 import { ArticleTable } from "@/components/ArticleTable";
 import { StatsCard } from "@/components/StatsCard";
 import { getAdminSession } from "@/lib/auth";
-import { articlesFor, getArticles } from "@/lib/data";
+import { articlesFor, getCards } from "@/lib/data";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +11,11 @@ export default async function AdminArchivePage() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
 
-  const articles = articlesFor(await getArticles(), session);
-  const archivedArticles = articles.filter((article) => article.status === "archived");
+  // Only archived stories, as body-stripped cards.
+  const archivedArticles = articlesFor(
+    await getCards({ status: "archived" }),
+    session,
+  );
 
   return (
     <main className="grid min-h-screen md:grid-cols-[16rem_1fr]">

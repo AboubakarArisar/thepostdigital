@@ -7,8 +7,8 @@ import { ArticleImage } from "@/components/ArticleImage";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import {
+  getCards,
   getPublishedArticleBySlug,
-  getPublishedArticles,
   getRelatedArticles,
 } from "@/lib/data";
 import { articleTextClass, directionFor, formatDateTime } from "@/lib/format";
@@ -81,9 +81,13 @@ export default async function ArticlePage({
   if (!article) notFound();
 
   const related = await getRelatedArticles(article);
-  const important = (await getPublishedArticles())
-    .filter((item) => item.slug !== article.slug && item.language === article.language)
-    .slice(0, 3);
+  // Top-stories rail: 3 newest live cards in the same language, body stripped.
+  const important = await getCards({
+    liveOnly: true,
+    language: article.language,
+    excludeSlug: article.slug,
+    limit: 3,
+  });
 
   const canonicalUrl = `${siteConfig.url}/article/${encodeURIComponent(article.slug)}`;
   const jsonLd = {

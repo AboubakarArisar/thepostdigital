@@ -6,7 +6,7 @@ import { LeadStories } from "@/components/LeadStories";
 import { StatsCard } from "@/components/StatsCard";
 import { getAnalytics } from "@/lib/analytics";
 import { getAdminSession, getAdminUsers, isSuperAdmin } from "@/lib/auth";
-import { articlesFor, getArticles, isLive } from "@/lib/data";
+import { articlesFor, getCards, isLive } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import Link from "next/link";
@@ -52,9 +52,9 @@ export default async function AdminDashboard({
   const view = isViewKey(viewParam) ? viewParam : null;
 
   const isSuper = isSuperAdmin(session);
-  // getArticles() already relabels due-scheduled stories as published, so the
-  // dashboard badge is correct without a promotion write.
-  const articles = articlesFor(await getArticles(), session);
+  // All stories as body-stripped cards (getCards relabels due-scheduled to
+  // published, so the badge is correct). The dashboard table never shows body.
+  const articles = articlesFor(await getCards(), session);
   const liveArticles = articles.filter((article) => article.status !== "archived");
   const archivedArticles = articles.filter((article) => article.status === "archived");
   // "Live" counts scheduled stories whose time has arrived, matching what the

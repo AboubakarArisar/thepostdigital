@@ -171,20 +171,19 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
     }),
     [language],
   );
+  // The primary button publishes (or schedules) — the separate "Save Draft"
+  // button is how you save without publishing. Label it for what it actually
+  // does so a super admin isn't told "Save Story" while it goes live.
   const primaryActionLabel =
     currentRole !== "super_admin"
       ? "Submit for Approval"
-      : status === "published"
+      : status === "scheduled"
         ? isEditing
+          ? "Update Schedule"
+          : "Schedule Story"
+        : isEditing && status === "published"
           ? "Update Published"
-          : "Publish"
-        : status === "scheduled"
-          ? isEditing
-            ? "Update Schedule"
-            : "Schedule Story"
-          : isEditing
-            ? "Update Story"
-            : "Save Story";
+          : "Publish";
 
   const inputClass =
     "w-full border border-wheat-900 bg-paper px-3 py-2 outline-none focus:ring-2 focus:ring-wheat-900";
@@ -699,11 +698,18 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           >
             <option value="draft">Draft</option>
             <option value="pending_approval">Pending approval</option>
-            {currentRole === "super_admin" && (
+            <option value="scheduled">Scheduled</option>
+            {/* Published and Archived are lifecycle states, not things you pick
+                while composing: publishing is what the Publish button does, and
+                archiving is a dashboard action. They appear here only when
+                editing a story already in that state, so the select stays
+                accurate and saving never changes it by accident. */}
+            {isEditing && status === "published" && (
               <option value="published">Published</option>
             )}
-            <option value="scheduled">Scheduled</option>
-            <option value="archived">Archived</option>
+            {isEditing && status === "archived" && (
+              <option value="archived">Archived</option>
+            )}
           </select>
 
           {status === "scheduled" && (
@@ -747,7 +753,13 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           <button
             type="button"
             disabled={isUploading || isSaving}
-            onClick={() => saveStory(status === "draft" ? "published" : status)}
+            onClick={() =>
+              saveStory(
+                status === "scheduled" || status === "pending_approval"
+                  ? status
+                  : "published",
+              )
+            }
             className="border-2 border-wheat-900 cursor-pointer bg-black px-3 py-2 text-sm font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60"
           >
             {isSaving ? "Saving..." : primaryActionLabel}
