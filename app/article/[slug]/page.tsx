@@ -6,6 +6,7 @@ import { ArticleCard } from "@/components/ArticleCard";
 import { ArticleImage } from "@/components/ArticleImage";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { ShareButtons } from "@/components/ShareButtons";
 import {
   getCards,
   getPublishedArticleBySlug,
@@ -132,12 +133,15 @@ export default async function ArticlePage({
           {article.excerpt}
         </p>
       )}
-      <div className="mt-5 flex flex-wrap gap-3 text-sm font-bold text-muted">
-        <span>{article.author}</span>
-        <span>{formatDateTime(article.publishedAt)}</span>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div className="flex flex-wrap gap-3 text-sm font-bold text-muted">
+          <span>{article.author}</span>
+          <span>{formatDateTime(article.publishedAt)}</span>
+        </div>
+        <ShareButtons url={canonicalUrl} title={article.title} />
       </div>
       <figure className="mt-6">
-        <div className="bg-elevated">
+        <div className="overflow-hidden rounded-xl bg-elevated">
           <ArticleImage article={article} fit="natural" />
         </div>
         {article.imageCaption && article.imageCaption !== article.excerpt && (

@@ -16,7 +16,7 @@ export const siteConfig = {
     "https://www.instagram.com/the_post_digital",
     "https://www.youtube.com/channel/UCzvrQhJQHOyF7eWpwbCuuow",
     "https://www.tiktok.com/@thepostdigital1",
-    "https://x.com/thepostdigital2",
+    "https://x.com/thepostdigital0",
   ],
   keywords: [
     "Pakistan news",

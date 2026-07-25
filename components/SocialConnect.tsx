@@ -37,7 +37,7 @@ const socialLinks = [
   },
   {
     label: "X",
-    href: "https://x.com/thepostdigital2",
+    href: "https://x.com/thepostdigital0",
     tone: "bg-ink text-paper",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6">

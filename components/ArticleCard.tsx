@@ -29,7 +29,7 @@ export function ArticleCard({
       >
         <Link
           href={articleHref}
-          className="block h-16 w-24 shrink-0 overflow-hidden bg-elevated"
+          className="block h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-elevated"
         >
           <ArticleImage article={article} fit="cover" />
         </Link>
@@ -58,7 +58,7 @@ export function ArticleCard({
       >
         <Link
           href={articleHref}
-          className="block h-20 w-28 shrink-0 overflow-hidden bg-elevated sm:mb-3 sm:h-auto sm:w-full"
+          className="block h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-elevated sm:mb-3 sm:h-auto sm:w-full"
         >
           <ArticleImage article={article} fit="cover" className="sm:h-auto" />
         </Link>
@@ -85,7 +85,7 @@ export function ArticleCard({
       {!compact && (
         <Link
           href={articleHref}
-          className="mb-3 block overflow-hidden bg-elevated"
+          className="mb-3 block overflow-hidden rounded-xl bg-elevated"
         >
           <ArticleImage article={article} fit="natural" />
         </Link>

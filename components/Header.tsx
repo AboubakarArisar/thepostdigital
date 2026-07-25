@@ -102,7 +102,7 @@ export async function Header({ language = "en" }: { language?: Language }) {
       <nav aria-label="Primary" className="border-b border-soft-rule bg-elevated">
         <div
           dir={language === "ur" ? "rtl" : "ltr"}
-          className={`scrollbar-none mx-auto flex max-w-7xl items-center justify-center gap-4 overflow-x-auto px-4 py-3 text-sm font-bold text-ink ${language === "ur" ? "font-urdu" : ""}`}
+          className={`scrollbar-none mx-auto flex max-w-7xl items-center justify-start gap-4 overflow-x-auto px-4 py-3 text-sm font-bold text-ink lg:justify-center ${language === "ur" ? "font-urdu" : ""}`}
         >
           <Link
             href={language === "en" ? "/?language=en" : "/"}

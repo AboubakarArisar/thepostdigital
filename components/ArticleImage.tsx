@@ -15,7 +15,9 @@ export function ArticleImage({
   fit = "natural",
 }: ArticleImageProps) {
   const fitClass =
-    fit === "natural" ? "h-auto w-full" : "h-full w-full object-cover";
+    fit === "natural"
+      ? "h-auto w-full rounded-xl"
+      : "h-full w-full rounded-xl object-cover";
 
   if (article.mediaType === "video") {
     return (

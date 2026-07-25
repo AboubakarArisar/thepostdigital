@@ -213,7 +213,7 @@ export default async function Home({
     <>
       <Link
         href={`/article/${encodeURIComponent(lead.slug)}`}
-        className="block bg-elevated"
+        className="block overflow-hidden rounded-xl bg-elevated"
       >
         <ArticleImage article={lead} priority fit="natural" />
       </Link>

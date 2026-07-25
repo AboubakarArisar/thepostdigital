@@ -14,7 +14,7 @@ export function Footer() {
   return (
     <footer className="mt-10 border-t border-rule bg-paper text-ink">
       <div className="bg-chrome py-2 text-inverse">
-        <div className="scrollbar-none mx-auto flex max-w-7xl justify-center gap-7 overflow-x-auto px-4 text-[12px] uppercase tracking-[0.04em]">
+        <div className="mx-auto flex max-w-7xl flex-wrap justify-center gap-x-7 gap-y-1 px-4 text-[12px] uppercase tracking-[0.04em]">
           {footerLinks.map((link) => (
             <Link
               href={link.href}
