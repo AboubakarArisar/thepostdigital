@@ -33,7 +33,7 @@
   --color-wheat-900: var(--wheat);
   --font-sans: "Inter", "Arial", sans-serif;
   --font-serif-display: "Newsreader", "Iowan Old Style", "Georgia", serif;
-  --font-urdu: "Noto Nastaliq Urdu", "Noto Naskh Arabic", "Jameel Noori Nastaleeq", serif;
+  --font-urdu: var(--font-urdu-face), "Noto Naskh Arabic", serif;
 }
 
 html.dark {
@@ -117,8 +117,8 @@ html.dark .site-logo-image[data-tone="dark"] {
 }
 
 .font-urdu {
-  font-family: "Noto Nastaliq Urdu", "Noto Naskh Arabic", "Jameel Noori Nastaleeq", serif;
-  line-height: 2.05;
+  font-family: var(--font-urdu-face), "Noto Naskh Arabic", serif;
+  line-height: 1.85;
 }
 
 .scrollbar-none {

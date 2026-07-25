@@ -23,7 +23,8 @@ export function LeadStories({ articles }: { articles: Article[] }) {
           >
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-black uppercase tracking-[0.16em]">
-                {label} top story
+                <span className={code === "ur" ? "font-urdu" : ""}>{label}</span>{" "}
+                top story
               </p>
               <span
                 className={lead ? "text-accent" : "text-muted"}

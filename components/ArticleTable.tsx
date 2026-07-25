@@ -285,6 +285,8 @@ export function ArticleTable({
                 setPage(1);
               }}
               className={`cursor-pointer rounded-md border px-2 py-1 transition-colors ${
+                value === "ur" ? "font-urdu" : ""
+              } ${
                 languageFilter === value
                   ? "border-accent bg-accent text-white"
                   : "border-wheat-900 hover:bg-black hover:text-white"
@@ -321,7 +323,9 @@ export function ArticleTable({
           ) : (
             pageArticles.map((article) => (
             <tr key={article.slug}>
-              <td className="max-w-xs p-3 font-bold">
+              <td
+                className={`max-w-xs p-3 font-bold ${article.language === "ur" ? "font-urdu" : ""}`}
+              >
                 {(article.priority ?? 0) >= 2 && (
                   <span
                     className="mr-1 text-accent"

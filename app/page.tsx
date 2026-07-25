@@ -58,7 +58,10 @@ function LanguageSwitcher({
       <div className="mb-2 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-muted">
         <span className="h-px w-8 bg-soft-rule" aria-hidden="true" />
         <span>
-          {selectedLabel} / {counts[selectedLanguage]} stories
+          <span className={selectedLanguage === "ur" ? "font-urdu" : ""}>
+            {selectedLabel}
+          </span>{" "}
+          / {counts[selectedLanguage]} stories
         </span>
         <span className="h-px w-8 bg-soft-rule" aria-hidden="true" />
       </div>
@@ -78,7 +81,9 @@ function LanguageSwitcher({
                   : "text-muted hover:bg-accent-soft hover:text-ink"
               }`}
             >
-              <span className="text-[11px] font-black uppercase tracking-[0.1em] sm:text-xs">
+              <span
+                className={`text-[11px] font-black uppercase tracking-[0.1em] sm:text-xs ${option.value === "ur" ? "font-urdu" : ""}`}
+              >
                 {option.label}
               </span>
               <span

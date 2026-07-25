@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
+import { Noto_Naskh_Arabic } from "next/font/google";
 import { ToasterProvider } from "@/components/ToasterProvider";
 import { VisitorTracker } from "@/components/VisitorTracker";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
+
+// Self-hosted so Urdu renders identically everywhere — without it Apple devices
+// fall back to their own system Nastaliq, which reads far more cramped.
+const urdu = Noto_Naskh_Arabic({
+  subsets: ["arabic"],
+  variable: "--font-urdu-face",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -102,7 +111,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full antialiased"
+      className={`h-full antialiased ${urdu.variable}`}
       suppressHydrationWarning
     >
       <head>
