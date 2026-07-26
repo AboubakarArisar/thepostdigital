@@ -36,7 +36,7 @@ export function LeadStory({ article }: { article: Article }) {
           )}
         </div>
         <p className="mt-5 border-t border-soft-rule pt-3 text-xs font-bold uppercase tracking-[0.14em] text-muted">
-          {article.author} / {formatDate(article.publishedAt)} /{" "}
+          {article.author} / {formatDate(article.publishedAt, article.language)} /{" "}
           {article.readingTime} min read
         </p>
       </div>

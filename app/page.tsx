@@ -228,7 +228,7 @@ export default async function Home({
       {lead.excerpt && (
         <p className="mt-3 text-lg leading-8 text-muted">{lead.excerpt}</p>
       )}
-      <p className="mt-3 text-sm text-muted">{formatDate(lead.publishedAt)}</p>
+      <p className="mt-3 text-sm text-muted">{formatDate(lead.publishedAt, lead.language)}</p>
     </>
   ) : null;
 

@@ -61,25 +61,6 @@ export async function PUT(
   const { slug } = await params;
   const article = (await request.json()) as Partial<Article>;
 
-  if (!article.title || !article.slug || !article.body?.length) {
-    return NextResponse.json(
-      { error: "Title, slug, and body are required." },
-      { status: 400 },
-    );
-  }
-
-  if (
-    !languages.has(article.language || "") ||
-    !statuses.has(article.status || "") ||
-    !contentTypes.has(article.contentType || "") ||
-    !mediaTypes.has(article.mediaType || "")
-  ) {
-    return NextResponse.json(
-      { error: "Story language, status, type, or media type is invalid." },
-      { status: 400 },
-    );
-  }
-
   try {
     const existing = await getArticleBySlug(slug);
 
@@ -88,6 +69,30 @@ export async function PUT(
       return NextResponse.json(
         { error: "You can only edit stories you created." },
         { status: 403 },
+      );
+    }
+
+    // Dashboard tables hold body-stripped cards, so their approve/archive/top
+    // PUTs arrive with an empty body. Keep the stored one instead of rejecting
+    // the request (and instead of overwriting the story with nothing).
+    const body = article.body?.length ? article.body : existing?.body;
+
+    if (!article.title || !article.slug || !body?.length) {
+      return NextResponse.json(
+        { error: "Title, slug, and body are required." },
+        { status: 400 },
+      );
+    }
+
+    if (
+      !languages.has(article.language || "") ||
+      !statuses.has(article.status || "") ||
+      !contentTypes.has(article.contentType || "") ||
+      !mediaTypes.has(article.mediaType || "")
+    ) {
+      return NextResponse.json(
+        { error: "Story language, status, type, or media type is invalid." },
+        { status: 400 },
       );
     }
 
@@ -119,7 +124,7 @@ export async function PUT(
       title: article.title,
       slug: article.slug,
       excerpt: article.excerpt || "",
-      body: article.body,
+      body,
       language: article.language as Language,
       category: article.category || "News",
       contentType: article.contentType as ArticleContentType,

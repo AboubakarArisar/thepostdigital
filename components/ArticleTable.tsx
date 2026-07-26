@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { formatDate, languageName } from "@/lib/format";
@@ -28,11 +28,20 @@ const iconPaths = {
   star: "m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z",
   archive: "M21 8v13H3V8M1 3h22v5H1zM10 12h4",
   trash: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6",
+  spinner: "M12 3a9 9 0 1 0 9 9",
 };
 
 type IconName = keyof typeof iconPaths;
 
-function ActionIcon({ name, filled }: { name: IconName; filled?: boolean }) {
+function ActionIcon({
+  name,
+  filled,
+  className,
+}: {
+  name: IconName;
+  filled?: boolean;
+  className?: string;
+}) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -44,6 +53,7 @@ function ActionIcon({ name, filled }: { name: IconName; filled?: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      className={className}
     >
       <path d={iconPaths[name]} />
     </svg>
@@ -60,6 +70,7 @@ function ActionButton({
   name,
   onClick,
   disabled,
+  busy,
   filled,
   tone = "default",
 }: {
@@ -67,6 +78,7 @@ function ActionButton({
   name: IconName;
   onClick: () => void;
   disabled?: boolean;
+  busy?: boolean;
   filled?: boolean;
   tone?: "default" | "danger";
 }) {
@@ -81,11 +93,16 @@ function ActionButton({
       type="button"
       title={label}
       aria-label={label}
-      disabled={disabled}
+      aria-busy={busy}
+      disabled={disabled || busy}
       onClick={onClick}
       className={`${actionBase} ${skin}`}
     >
-      <ActionIcon name={name} filled={filled} />
+      {busy ? (
+        <ActionIcon name="spinner" className="animate-spin" />
+      ) : (
+        <ActionIcon name={name} filled={filled} />
+      )}
     </button>
   );
 }
@@ -112,9 +129,30 @@ export function ArticleTable({
   const [page, setPage] = useState(1);
   const [pendingDelete, setPendingDelete] = useState<Article | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [featuringSlug, setFeaturingSlug] = useState<string | null>(null);
+  // One row action at a time: "<slug>:<action>". Drives the button spinner and
+  // locks the rest of the table so a second click cannot race the first.
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  // router.refresh() re-runs the (force-dynamic) dashboard render on the server;
+  // without a transition the button stops spinning long before the row updates.
+  const [isRefreshing, startRefresh] = useTransition();
   const [languageFilter, setLanguageFilter] = useState<"all" | Language>("all");
   const isSuper = currentRole === "super_admin";
+  const locked = busyKey !== null || isRefreshing;
+
+  // Every row action runs through here, so none of them can forget the spinner.
+  async function run(key: string, task: () => Promise<void>) {
+    if (locked) return;
+    setBusyKey(key);
+    try {
+      await task();
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  function refresh() {
+    startRefresh(() => router.refresh());
+  }
 
   // Re-sync when the server sends a fresh list (e.g. after router.refresh()).
   useEffect(() => {
@@ -153,7 +191,7 @@ export function ArticleTable({
         setItems((current) => current.filter((item) => item.slug !== slug));
         setPendingDelete(null);
         toast("This story was already removed by someone else.");
-        router.refresh();
+        refresh();
       } else {
         const result = (await response.json().catch(() => ({}))) as {
           error?: string;
@@ -180,7 +218,7 @@ export function ArticleTable({
       toast.success(
         nextStatus === "published" ? "Story published." : "Moved to draft.",
       );
-      router.refresh();
+      refresh();
     } else {
       toast.error("Could not update this story.");
     }
@@ -195,7 +233,7 @@ export function ArticleTable({
 
     if (response.ok) {
       toast.success("Submitted for approval.");
-      router.refresh();
+      refresh();
     } else {
       toast.error("Could not submit this story.");
     }
@@ -204,8 +242,6 @@ export function ArticleTable({
   // Set (or clear) the homepage "Top story" straight from the list. Lead is
   // per-language, so featuring one demotes any other top in the same language.
   async function toggleFeatured(article: Article) {
-    if (featuringSlug) return;
-    setFeaturingSlug(article.slug);
     const makeTop = (article.priority ?? 0) < 2;
 
     try {
@@ -236,11 +272,9 @@ export function ArticleTable({
         }),
       );
       toast.success(makeTop ? "Set as the top story." : "Removed from top story.");
-      router.refresh();
+      refresh();
     } catch {
       toast.error("Could not update the top story.");
-    } finally {
-      setFeaturingSlug(null);
     }
   }
 
@@ -257,7 +291,7 @@ export function ArticleTable({
         current.filter((item) => item.slug !== article.slug),
       );
       toast.success("Story archived.");
-      router.refresh();
+      refresh();
     } else {
       toast.error("Could not archive this story.");
     }
@@ -311,7 +345,12 @@ export function ArticleTable({
             <th className="p-3">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-wheat-900">
+        {/* The server re-render is not instant, so the rows pulse until the
+            fresh list lands — otherwise the table just sits there looking stale. */}
+        <tbody
+          aria-busy={isRefreshing}
+          className={`divide-y divide-wheat-900 ${isRefreshing ? "animate-pulse" : ""}`}
+        >
           {visible.length === 0 ? (
             <tr>
               <td className="p-6 text-center font-bold text-zinc-600" colSpan={8}>
@@ -342,7 +381,7 @@ export function ArticleTable({
               <td className="p-3">{languageName(article.language)}</td>
               <td className="p-3">
                 <span
-                  className={`border border-wheat-900 px-2 py-1 text-black text-xs font-black uppercase tracking-[0.12em] ${statusClass[article.status]}`}
+                  className={`border border-wheat-900 px-2 py-1 text-white text-xs font-white uppercase tracking-[0.12em] ${statusClass[article.status]}`}
                 >
                   {article.status}
                 </span>
@@ -374,7 +413,11 @@ export function ArticleTable({
                           : "Publish now"
                       }
                       name={article.status === "published" ? "hide" : "check"}
-                      onClick={() => changeStatus(article)}
+                      disabled={locked}
+                      busy={busyKey === `${article.slug}:status`}
+                      onClick={() =>
+                        run(`${article.slug}:status`, () => changeStatus(article))
+                      }
                     />
                   ) : (
                     // Only a draft has anything to submit — showing it on an
@@ -383,7 +426,13 @@ export function ArticleTable({
                       <ActionButton
                         label="Submit for approval"
                         name="send"
-                        onClick={() => submitForApproval(article)}
+                        disabled={locked}
+                        busy={busyKey === `${article.slug}:submit`}
+                        onClick={() =>
+                          run(`${article.slug}:submit`, () =>
+                            submitForApproval(article),
+                          )
+                        }
                       />
                     )
                   )}
@@ -400,14 +449,23 @@ export function ArticleTable({
                         }
                         name="star"
                         filled={(article.priority ?? 0) >= 2}
-                        disabled={featuringSlug !== null}
-                        onClick={() => toggleFeatured(article)}
+                        disabled={locked}
+                        busy={busyKey === `${article.slug}:top`}
+                        onClick={() =>
+                          run(`${article.slug}:top`, () => toggleFeatured(article))
+                        }
                       />
                       {article.status !== "archived" && (
                         <ActionButton
                           label="Archive story"
                           name="archive"
-                          onClick={() => archiveStory(article)}
+                          disabled={locked}
+                          busy={busyKey === `${article.slug}:archive`}
+                          onClick={() =>
+                            run(`${article.slug}:archive`, () =>
+                              archiveStory(article),
+                            )
+                          }
                         />
                       )}
                     </>
@@ -419,6 +477,8 @@ export function ArticleTable({
                     label="Delete story"
                     name="trash"
                     tone="danger"
+                    disabled={locked}
+                    busy={deleting && pendingDelete?.slug === article.slug}
                     onClick={() => setPendingDelete(article)}
                   />
                 </div>

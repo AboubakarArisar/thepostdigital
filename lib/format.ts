@@ -35,29 +35,46 @@ function ltrIsolate(text: string) {
 
 // Rendered on the server (UTC on Vercel), so pin the timezone to Pakistan —
 // otherwise a story posted just after midnight PKT shows the previous day.
-// en-GB gives a stable "13 Jul 2026" ordering across ICU builds.
-export function formatDate(value: string) {
-  return ltrIsolate(
-    new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      timeZone: "Asia/Karachi",
-    }).format(new Date(value)),
-  );
+// en-GB gives a stable "13 Jul 2026" ordering across ICU builds; ur-PK gives
+// "26 جولائی، 2026" — Urdu month name, Latin digits, matching the site's
+// numeric style. An Urdu date is already RTL, so it must NOT be LTR-isolated.
+function localeDate(value: string, language: Language, extra: Intl.DateTimeFormatOptions) {
+  const text = new Intl.DateTimeFormat(language === "ur" ? "ur-PK" : "en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    numberingSystem: "latn",
+    timeZone: "Asia/Karachi",
+    ...extra,
+  }).format(new Date(value));
+
+  return language === "ur" ? text : ltrIsolate(text);
+}
+
+// Admin screens are English-only, so the language defaults to "en" there.
+export function formatDate(value: string, language: Language = "en") {
+  return localeDate(value, language, {});
 }
 
 // Same instant with the Pakistan-time clock, e.g. "13 Jul 2026, 1:10 am".
-export function formatDateTime(value: string) {
-  return ltrIsolate(
-    new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
+// The clock is always LTR ("4:03 PM"), so in Urdu it is formatted separately
+// and isolated — folding it into the RTL date string pushes "PM" to the far
+// left and reads as "PM 4:03 ،2026 جولائی 26".
+export function formatDateTime(value: string, language: Language = "en") {
+  if (language !== "ur") {
+    return localeDate(value, language, {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "Asia/Karachi",
-    }).format(new Date(value)),
-  );
+    });
+  }
+
+  const time = new Intl.DateTimeFormat("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Karachi",
+  }).format(new Date(value));
+
+  return `${localeDate(value, "ur", {})} ${ltrIsolate(time)}`;
 }

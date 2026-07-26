@@ -40,7 +40,7 @@ export function ArticleCard({
             </Link>
           </h3>
           <p className="mt-1 text-xs text-muted">
-            {formatDate(article.publishedAt)}
+            {formatDate(article.publishedAt, article.language)}
           </p>
         </div>
       </article>
@@ -69,7 +69,7 @@ export function ArticleCard({
             </Link>
           </h3>
           <p className="mt-2 text-sm text-muted">
-            {formatDate(article.publishedAt)}
+            {formatDate(article.publishedAt, article.language)}
           </p>
         </div>
       </article>
@@ -102,7 +102,7 @@ export function ArticleCard({
       {!compact && !hideExcerpt && article.excerpt && (
         <p className="mt-2 text-sm leading-6 text-muted">{article.excerpt}</p>
       )}
-      <p className="mt-2 text-sm text-muted">{formatDate(article.publishedAt)}</p>
+      <p className="mt-2 text-sm text-muted">{formatDate(article.publishedAt, article.language)}</p>
     </article>
   );
 }
