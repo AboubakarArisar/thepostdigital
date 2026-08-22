@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const SESSION_COOKIE = "post_admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 8;
 const DEFAULT_SESSION_SECRET = "dev-only-newsclient-admin-secret";
+let hmacKeyPromise: Promise<CryptoKey> | null = null;
 
 if (
   process.env.NODE_ENV === "production" &&
@@ -22,13 +23,16 @@ function bytesToHex(bytes: ArrayBuffer) {
 
 async function sign(value: string) {
   const secret = process.env.ADMIN_SESSION_SECRET || DEFAULT_SESSION_SECRET;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  if (!hmacKeyPromise) {
+    hmacKeyPromise = crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+  }
+  const key = await hmacKeyPromise;
   const signature = await crypto.subtle.sign(
     "HMAC",
     key,
@@ -82,6 +86,7 @@ function isProtectedApi(pathname: string) {
     pathname.startsWith("/api/articles") ||
     pathname.startsWith("/api/cloudinary-upload") ||
     pathname.startsWith("/api/cloudinary-sign") ||
+    pathname.startsWith("/api/google-input-tools") ||
     pathname.startsWith("/api/admin/users") ||
     pathname.startsWith("/api/admin/logout")
   );
@@ -159,6 +164,7 @@ export const config = {
     "/api/articles/:path*",
     "/api/cloudinary-upload",
     "/api/cloudinary-sign",
+    "/api/google-input-tools",
     "/api/admin/users/:path*",
     "/api/admin/logout",
   ],

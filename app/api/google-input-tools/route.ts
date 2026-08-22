@@ -26,16 +26,7 @@ function fallbackTransliterate(text: string) {
     .join("");
 }
 
-export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as {
-    text?: unknown;
-  } | null;
-  const text = typeof body?.text === "string" ? body.text.trim() : "";
-
-  if (!text) {
-    return Response.json({ text: "" }, { status: 400 });
-  }
-
+async function transliterateViaGoogle(text: string) {
   const params = new URLSearchParams({
     text,
     itc: "ur-t-i0-und",
@@ -46,21 +37,58 @@ export async function POST(request: Request) {
     oe: "utf-8",
   });
 
-  try {
-    const response = await fetch(
-      `https://inputtools.google.com/request?${params.toString()}`,
-      { cache: "no-store" },
-    );
+  const response = await fetch(
+    `https://inputtools.google.com/request?${params.toString()}`,
+    { cache: "no-store" },
+  );
 
-    if (!response.ok) {
-      throw new Error(`Google Input Tools failed: ${response.status}`);
+  if (!response.ok) {
+    throw new Error(`Google Input Tools failed: ${response.status}`);
+  }
+
+  const data = (await response.json()) as GoogleInputToolsResponse;
+  return data[0] === "SUCCESS" ? data[1]?.[0]?.[1]?.[0] : null;
+}
+
+export async function POST(request: Request) {
+  const body = (await request.json().catch(() => null)) as {
+    text?: unknown;
+    texts?: unknown;
+  } | null;
+  const text = typeof body?.text === "string" ? body.text.trim() : "";
+  const texts = Array.isArray(body?.texts)
+    ? body.texts
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : [];
+
+  if (!text && texts.length === 0) {
+    return Response.json({ text: "", texts: [] }, { status: 400 });
+  }
+
+  try {
+    if (texts.length > 0) {
+      const suggestions = await Promise.all(
+        texts.map(async (input) => {
+          const suggestion = await transliterateViaGoogle(input);
+          return suggestion ?? fallbackTransliterate(input);
+        }),
+      );
+      return Response.json({ texts: suggestions });
     }
 
-    const data = (await response.json()) as GoogleInputToolsResponse;
-    const suggestion = data[0] === "SUCCESS" ? data[1]?.[0]?.[1]?.[0] : null;
+    const suggestion = await transliterateViaGoogle(text);
 
     return Response.json({ text: suggestion ?? fallbackTransliterate(text) });
   } catch {
+    if (texts.length > 0) {
+      return Response.json({
+        texts: texts.map((item) => fallbackTransliterate(item)),
+        source: "fallback",
+      });
+    }
+
     return Response.json({
       text: fallbackTransliterate(text),
       source: "fallback",

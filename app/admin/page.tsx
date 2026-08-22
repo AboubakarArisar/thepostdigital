@@ -54,7 +54,10 @@ export default async function AdminDashboard({
   const isSuper = isSuperAdmin(session);
   // All stories as body-stripped cards (getCards relabels due-scheduled to
   // published, so the badge is correct). The dashboard table never shows body.
-  const articles = articlesFor(await getCards(), session);
+  const articles = articlesFor(
+    await getCards(isSuper ? {} : { createdBy: session.email }),
+    session,
+  );
   const liveArticles = articles.filter((article) => article.status !== "archived");
   const archivedArticles = articles.filter((article) => article.status === "archived");
   // "Live" counts scheduled stories whose time has arrived, matching what the
@@ -69,9 +72,10 @@ export default async function AdminDashboard({
   const upcoming = liveArticles
     .filter((article) => article.status === "scheduled" && !isLive(article))
     .sort((a, b) => +new Date(a.publishedAt) - +new Date(b.publishedAt));
-  const adminUsers = isSuper ? await getAdminUsers() : [];
+  const [adminUsers, analytics] = isSuper
+    ? await Promise.all([getAdminUsers(), getAnalytics()])
+    : [[], null];
   const pendingAdminUsers = adminUsers.filter((user) => user.status === "pending").length;
-  const analytics = isSuper ? await getAnalytics() : null;
 
   return (
     <main className="grid min-h-screen md:grid-cols-[16rem_1fr]">

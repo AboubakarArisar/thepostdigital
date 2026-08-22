@@ -74,7 +74,9 @@ export async function ensureSchema() {
 // reads use dbGetCards (body stripped) or dbGetArticleBySlug (one row).
 export async function dbGetArticles(): Promise<Article[]> {
   const rows = await client()`
-    SELECT data FROM articles ORDER BY published_at DESC`;
+    SELECT data FROM articles
+    WHERE jsonb_typeof(data::jsonb) = 'object'
+    ORDER BY published_at DESC`;
 
   return rows.map((row) => row.data as Article);
 }
@@ -83,7 +85,10 @@ export async function dbGetArticles(): Promise<Article[]> {
 // and only ever one row.
 export async function dbGetArticleBySlug(slug: string): Promise<Article | null> {
   const rows = await client()`
-    SELECT data FROM articles WHERE slug = ${slug} LIMIT 1`;
+    SELECT data FROM articles
+    WHERE slug = ${slug}
+      AND jsonb_typeof(data::jsonb) = 'object'
+    LIMIT 1`;
 
   return rows.length ? (rows[0].data as Article) : null;
 }
@@ -91,6 +96,7 @@ export async function dbGetArticleBySlug(slug: string): Promise<Article | null> 
 export type CardFilters = {
   language?: string;
   category?: string;
+  createdBy?: string;
   excludeSlug?: string;
   priorityMin?: number;
   status?: string;
@@ -106,7 +112,7 @@ export type CardFilters = {
 // Builds a parameterized card query. `data - 'body'` drops the (heavy) body
 // array server-side, so listings never transfer article bodies.
 function buildCardQuery(f: CardFilters) {
-  const conds: string[] = [];
+  const conds: string[] = [`jsonb_typeof(data::jsonb) = 'object'`];
   const params: unknown[] = [];
   const p = (value: unknown) => {
     params.push(value);
@@ -120,6 +126,7 @@ function buildCardQuery(f: CardFilters) {
   }
   if (f.language) conds.push(`language = ${p(f.language)}`);
   if (f.category) conds.push(`category = ${p(f.category)}`);
+  if (f.createdBy) conds.push(`data->>'createdBy' = ${p(f.createdBy)}`);
   if (f.excludeSlug) conds.push(`slug <> ${p(f.excludeSlug)}`);
   if (f.priorityMin != null) conds.push(`priority >= ${p(f.priorityMin)}`);
   if (f.status) conds.push(`status = ${p(f.status)}`);
@@ -144,7 +151,9 @@ function buildCardQuery(f: CardFilters) {
   if (f.offset != null) tail += ` OFFSET ${p(f.offset)}`;
 
   return {
-    dataText: `SELECT data - 'body' AS card FROM articles ${where}${tail}`,
+    // Older production tables may still have `data` as JSON (not JSONB); cast
+    // keeps body-stripping compatible across both column types.
+    dataText: `SELECT (data::jsonb - 'body') AS card FROM articles ${where}${tail}`,
     dataParams: params,
     countText: `SELECT count(*)::int AS n FROM articles ${where}`,
     countParams: whereParams,
@@ -164,12 +173,6 @@ export async function dbCountCards(f: CardFilters): Promise<number> {
   const { countText, countParams } = buildCardQuery(f);
   const rows = (await client().query(countText, countParams)) as { n: number }[];
   return rows[0]?.n ?? 0;
-}
-
-// Slugs only — tiny read used by the create path to avoid slug collisions.
-export async function dbGetAllSlugs(): Promise<string[]> {
-  const rows = await client()`SELECT slug FROM articles`;
-  return rows.map((row) => row.slug as string);
 }
 
 export async function dbSlugExists(slug: string, exceptSlug?: string) {
@@ -337,4 +340,3 @@ export async function dbSeedAnalytics(
     ),
   );
 }
-

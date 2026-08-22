@@ -10,7 +10,6 @@ import {
   dbCountCards,
   dbDeleteArticle,
   dbFindByTitle,
-  dbGetAllSlugs,
   dbGetArticleBySlug,
   dbGetArticles,
   dbGetCards,
@@ -472,12 +471,10 @@ function sameContent(a: Article, b: Article) {
 
 export async function saveArticle(article: Article) {
   // Dedup + slug-collision. In DB mode both are targeted queries (same-title
-  // rows only, and a slugs-only list) — never a full-table body read. The file
+  // rows, then slug existence checks) — never a full-table body read. The file
   // fallback still reads the whole store, but that path only runs if the DB is
   // unreachable.
   let matchingArticle: Article | undefined;
-  let existingSlugs: Set<string>;
-
   if (hasDatabase) {
     const sameTitle = await dbFindByTitle(
       article.title.trim(),
@@ -485,11 +482,24 @@ export async function saveArticle(article: Article) {
       article.createdBy,
     );
     matchingArticle = sameTitle.find((item) => sameContent(item, article));
-    existingSlugs = new Set(await dbGetAllSlugs());
   } else {
     const articles = await getArticles();
     matchingArticle = articles.find((item) => sameContent(item, article));
-    existingSlugs = new Set(articles.map((item) => item.slug));
+    const existingSlugs = new Set(articles.map((item) => item.slug));
+    const baseSlug = normalizeSlug(article.slug || article.title);
+    let slug = baseSlug;
+    let counter = 2;
+
+    while (existingSlugs.has(slug)) {
+      slug = `${baseSlug}-${counter}`;
+      counter += 1;
+    }
+
+    const savedArticle = { ...article, slug };
+
+    await writeArticles(enforceSingleTop([savedArticle, ...articles], savedArticle));
+    await invalidateArticlesCache();
+    return savedArticle;
   }
 
   if (matchingArticle) {
@@ -500,22 +510,15 @@ export async function saveArticle(article: Article) {
   let slug = baseSlug;
   let counter = 2;
 
-  while (existingSlugs.has(slug)) {
+  while (await dbSlugExists(slug)) {
     slug = `${baseSlug}-${counter}`;
     counter += 1;
   }
 
   const savedArticle = { ...article, slug };
 
-  if (hasDatabase) {
-    await dbUpsertArticle(savedArticle);
-    await dbClearOtherTops(savedArticle);
-    await invalidateArticlesCache();
-    return savedArticle;
-  }
-
-  const articles = await getArticles();
-  await writeArticles(enforceSingleTop([savedArticle, ...articles], savedArticle));
+  await dbUpsertArticle(savedArticle);
+  await dbClearOtherTops(savedArticle);
   await invalidateArticlesCache();
   return savedArticle;
 }
@@ -624,6 +627,7 @@ function filterCardsFromStore(all: Article[], f: CardFilters): Article[] {
     if (f.status && a.status !== f.status) return false;
     if (f.language && a.language !== f.language) return false;
     if (f.category && a.category !== f.category) return false;
+    if (f.createdBy && a.createdBy !== f.createdBy) return false;
     if (f.excludeSlug && a.slug === f.excludeSlug) return false;
     if (f.priorityMin != null && (a.priority ?? 0) < f.priorityMin) return false;
     if (q) {

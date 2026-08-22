@@ -81,14 +81,16 @@ export default async function ArticlePage({
 
   if (!article) notFound();
 
-  const related = await getRelatedArticles(article);
-  // Top-stories rail: 3 newest live cards in the same language, body stripped.
-  const important = await getCards({
-    liveOnly: true,
-    language: article.language,
-    excludeSlug: article.slug,
-    limit: 3,
-  });
+  const [related, important] = await Promise.all([
+    getRelatedArticles(article),
+    // Top-stories rail: 3 newest live cards in the same language, body stripped.
+    getCards({
+      liveOnly: true,
+      language: article.language,
+      excludeSlug: article.slug,
+      limit: 3,
+    }),
+  ]);
 
   const canonicalUrl = `${siteConfig.url}/article/${encodeURIComponent(article.slug)}`;
   const jsonLd = {

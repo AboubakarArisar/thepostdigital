@@ -36,8 +36,12 @@ export async function GET() {
   }
 
   // Admin table needs no article bodies — body-stripped cards.
+  const cardFilters = isSuperAdmin(session)
+    ? {}
+    : { createdBy: session.email };
+
   return NextResponse.json({
-    articles: articlesFor(await getCards(), session),
+    articles: articlesFor(await getCards(cardFilters), session),
   });
 }
 

@@ -44,6 +44,9 @@ const punctuationTriggerKeys = new Set([
 ]);
 
 const trailingRomanToken = /([A-Za-z][A-Za-z'-]*)([\s.,!?;:،۔؟]*)$/;
+const transliterationCache = new Map<string, string>();
+const transliterationInFlight = new Map<string, Promise<string>>();
+const MAX_TRANSLITERATION_CACHE = 500;
 
 const placeholders: Record<
   Language,
@@ -84,16 +87,40 @@ async function readJsonResponse<T>(response: Response) {
 }
 
 async function transliterateText(text: string) {
-  const response = await fetch("/api/google-input-tools", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
+  const key = text.trim().toLowerCase();
+  const cached = transliterationCache.get(key);
+  if (cached) return cached;
 
-  if (!response.ok) return text;
+  const inFlight = transliterationInFlight.get(key);
+  if (inFlight) return inFlight;
 
-  const data = await readJsonResponse<{ text?: string }>(response);
-  return data.text || text;
+  const request = (async () => {
+    const response = await fetch("/api/google-input-tools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) return text;
+
+    const data = await readJsonResponse<{ text?: string }>(response);
+    const result = data.text || text;
+
+    transliterationCache.set(key, result);
+    if (transliterationCache.size > MAX_TRANSLITERATION_CACHE) {
+      const oldest = transliterationCache.keys().next().value;
+      if (oldest) transliterationCache.delete(oldest);
+    }
+
+    return result;
+  })();
+
+  transliterationInFlight.set(key, request);
+  try {
+    return await request;
+  } finally {
+    transliterationInFlight.delete(key);
+  }
 }
 
 async function transliterateLatestToken(value: string) {
@@ -110,10 +137,48 @@ async function transliterateLatestToken(value: string) {
 async function transliterateAllRomanWords(value: string) {
   const words = value.match(/[A-Za-z][A-Za-z'-]*/g) ?? [];
   const uniqueWords = Array.from(new Set(words));
-  const convertedPairs = await Promise.all(
-    uniqueWords.map(async (word) => [word, await transliterateText(word)] as const),
-  );
-  const converted = new Map(convertedPairs);
+  const converted = new Map<string, string>();
+  const uncachedWords: string[] = [];
+
+  for (const word of uniqueWords) {
+    const cached = transliterationCache.get(word.toLowerCase());
+    if (cached) {
+      converted.set(word, cached);
+    } else {
+      uncachedWords.push(word);
+    }
+  }
+
+  if (uncachedWords.length > 0) {
+    const response = await fetch("/api/google-input-tools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texts: uncachedWords }),
+    });
+
+    if (response.ok) {
+      const data = await readJsonResponse<{ texts?: string[] }>(response);
+      const values = Array.isArray(data.texts) ? data.texts : [];
+      uncachedWords.forEach((word, index) => {
+        const value = values[index] || word;
+        converted.set(word, value);
+        transliterationCache.set(word.toLowerCase(), value);
+      });
+      if (transliterationCache.size > MAX_TRANSLITERATION_CACHE) {
+        const extra = transliterationCache.size - MAX_TRANSLITERATION_CACHE;
+        for (let index = 0; index < extra; index += 1) {
+          const oldest = transliterationCache.keys().next().value;
+          if (!oldest) break;
+          transliterationCache.delete(oldest);
+        }
+      }
+    } else {
+      const fallbackPairs = await Promise.all(
+        uncachedWords.map(async (word) => [word, await transliterateText(word)] as const),
+      );
+      fallbackPairs.forEach(([word, value]) => converted.set(word, value));
+    }
+  }
 
   return value.replace(/[A-Za-z][A-Za-z'-]*/g, (word) => converted.get(word) ?? word);
 }
@@ -420,7 +485,6 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             ? "Submitted for approval."
             : "Story saved.",
       );
-      router.refresh();
       router.push("/admin");
     } catch (error) {
       const message =

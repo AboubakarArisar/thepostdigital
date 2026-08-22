@@ -13,7 +13,11 @@ export default async function AdminArchivePage() {
 
   // Only archived stories, as body-stripped cards.
   const archivedArticles = articlesFor(
-    await getCards({ status: "archived" }),
+    await getCards(
+      session.role === "super_admin"
+        ? { status: "archived" }
+        : { status: "archived", createdBy: session.email },
+    ),
     session,
   );
 
