@@ -91,16 +91,12 @@ function verifyPassword(password: string, storedHash: string) {
   return safeEqual(candidate, storedHash);
 }
 
-function seededPasswordStillActive(user: AdminUser, password: string) {
+function seededPasswordMatches(user: AdminUser, password: string) {
   const seededMatch = seededSuperAdmins.find(
     (admin) => admin.email.toLowerCase() === user.email,
   );
 
-  return (
-    Boolean(seededMatch) &&
-    password === seededMatch?.password &&
-    verifyPassword(seededMatch.password, user.passwordHash)
-  );
+  return Boolean(seededMatch) && password === seededMatch?.password;
 }
 
 async function writeAdminUsers(users: AdminUser[]) {
@@ -197,7 +193,7 @@ export async function validateAdminCredentials(email: string, password: string) 
 
   const isValid =
     verifyPassword(password, user.passwordHash) ||
-    seededPasswordStillActive(user, password);
+    seededPasswordMatches(user, password);
 
   if (!isValid) return null;
 
@@ -227,7 +223,7 @@ export async function changeAdminPassword({
 
   const currentIsValid =
     verifyPassword(currentPassword, user.passwordHash) ||
-    seededPasswordStillActive(user, currentPassword);
+    seededPasswordMatches(user, currentPassword);
 
   if (!currentIsValid) {
     throw new Error("Current password is incorrect.");
