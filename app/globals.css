@@ -138,6 +138,33 @@ html.dark .site-logo-image[data-tone="dark"] {
   margin-top: 1.35rem;
 }
 
+.article-body .rich-article-html > * + *,
+.article-body .rich-article-html li + li {
+  margin-top: 1rem;
+}
+
+.article-body .rich-article-html ul,
+.article-body .rich-article-html ol {
+  margin-block: 1.35rem;
+  padding-inline-start: 1.6rem;
+}
+
+.article-body .rich-article-html ul {
+  list-style: disc;
+}
+
+.article-body .rich-article-html ol {
+  list-style: decimal;
+}
+
+.article-body .rich-article-html blockquote {
+  border-inline-start: 4px solid var(--accent);
+  color: var(--muted);
+  font-style: italic;
+  margin-block: 1.35rem;
+  padding-inline-start: 1rem;
+}
+
 .editor-label {
   display: block;
   margin-bottom: 0.5rem;
@@ -145,6 +172,29 @@ html.dark .site-logo-image[data-tone="dark"] {
   font-weight: 900;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.rich-text-editor:empty::before {
+  color: var(--muted);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.rich-text-editor p,
+.rich-text-editor blockquote,
+.rich-text-editor ul,
+.rich-text-editor ol {
+  margin-bottom: 1rem;
+}
+
+.rich-text-editor blockquote {
+  border-inline-start: 4px solid var(--wheat);
+  padding-inline-start: 1rem;
+}
+
+.rich-text-editor ul,
+.rich-text-editor ol {
+  padding-inline-start: 1.5rem;
 }
 
 @media (max-width: 767px) {

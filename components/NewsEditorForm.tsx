@@ -1,6 +1,14 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { categories } from "@/lib/categories";
@@ -47,6 +55,33 @@ const trailingRomanToken = /([A-Za-z][A-Za-z'-]*)([\s.,!?;:،۔؟]*)$/;
 const transliterationCache = new Map<string, string>();
 const transliterationInFlight = new Map<string, Promise<string>>();
 const MAX_TRANSLITERATION_CACHE = 500;
+const richTextButtons: Array<{
+  command: string;
+  label: string;
+  title: string;
+  value?: string;
+}> = [
+  { command: "bold", label: "Bold", title: "Bold selected text" },
+  { command: "italic", label: "Italic", title: "Italicize selected text" },
+  { command: "underline", label: "Underline", title: "Underline selected text" },
+  {
+    command: "insertUnorderedList",
+    label: "Bullets",
+    title: "Turn selected lines into a bullet list",
+  },
+  {
+    command: "insertOrderedList",
+    label: "Numbers",
+    title: "Turn selected lines into a numbered list",
+  },
+  {
+    command: "formatBlock",
+    label: "Quote",
+    title: "Format selected text as a quote",
+    value: "blockquote",
+  },
+] as const;
+const inlineRichTextCommands = new Set(["bold", "italic", "underline"]);
 
 const placeholders: Record<
   Language,
@@ -191,6 +226,188 @@ function toDateTimeLocal(iso?: string) {
   const pad = (value: number) => String(value).padStart(2, "0");
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function articleBodyFromEditor(body: string) {
+  const trimmed = body.trim();
+
+  if (/<[a-z][\s\S]*>/i.test(trimmed)) return [trimmed];
+
+  return trimmed
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
+function RichTextEditor({
+  id,
+  value,
+  placeholder,
+  writingMode,
+  onChange,
+  onKeyUp,
+}: {
+  id: string;
+  value: string;
+  placeholder: string;
+  writingMode: {
+    dir: string;
+    lang: Language;
+    className: string;
+  };
+  onChange: (value: string) => void;
+  onKeyUp: (event: KeyboardEvent<HTMLDivElement>) => void;
+}) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const selectionRef = useRef<Range | null>(null);
+  const [activeCommands, setActiveCommands] = useState<string[]>([]);
+  const [hasSelection, setHasSelection] = useState(false);
+  const [hint, setHint] = useState("Select text, then choose a format.");
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (editor && document.activeElement !== editor && editor.innerHTML !== value) {
+      editor.innerHTML = value;
+    }
+  }, [value]);
+
+  const selectionIsInsideEditor = useCallback((selection: Selection) => {
+    const editor = editorRef.current;
+    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+
+    return Boolean(
+      editor &&
+        range &&
+        editor.contains(range.commonAncestorContainer),
+    );
+  }, []);
+
+  const updateSelectionState = useCallback(() => {
+    const selection = window.getSelection();
+
+    if (!selection || !selectionIsInsideEditor(selection)) {
+      setHasSelection(false);
+      setActiveCommands([]);
+      return;
+    }
+
+    selectionRef.current = selection.getRangeAt(0).cloneRange();
+    setHasSelection(!selection.isCollapsed);
+    setHint(
+      selection.isCollapsed
+        ? "Select text, then choose a format."
+        : "Formatting will apply only to the selected text.",
+    );
+    setActiveCommands(
+      richTextButtons
+        .filter(({ command, value }) =>
+          command === "formatBlock"
+            ? selection.anchorNode?.parentElement?.closest(value ?? "")
+            : document.queryCommandState(command),
+        )
+        .map(({ command }) => command),
+    );
+  }, [selectionIsInsideEditor]);
+
+  useEffect(() => {
+    document.addEventListener("selectionchange", updateSelectionState);
+    return () => {
+      document.removeEventListener("selectionchange", updateSelectionState);
+    };
+  }, [updateSelectionState]);
+
+  function keepEditorSelection(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+  }
+
+  function runCommand(command: string, commandValue?: string) {
+    const editor = editorRef.current;
+    const savedSelection = selectionRef.current;
+
+    if (!editor || !savedSelection || savedSelection.collapsed) {
+      setHint("Select the exact text first.");
+      return;
+    }
+
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(savedSelection);
+    editor.focus();
+
+    const nextValue =
+      command === "formatBlock" &&
+      selection?.anchorNode?.parentElement?.closest(commandValue ?? "")
+        ? "p"
+        : commandValue;
+
+    document.execCommand(command, false, nextValue);
+
+    if (inlineRichTextCommands.has(command)) {
+      const nextRange = window.getSelection()?.getRangeAt(0).cloneRange();
+      nextRange?.collapse(false);
+      selection?.removeAllRanges();
+      if (nextRange) selection?.addRange(nextRange);
+      if (document.queryCommandState(command)) {
+        document.execCommand(command, false);
+      }
+      selectionRef.current = null;
+      setHasSelection(false);
+      setActiveCommands([]);
+      setHint("Formatting applied. New typing is normal.");
+    }
+
+    onChange(editor.innerHTML);
+    if (!inlineRichTextCommands.has(command)) updateSelectionState();
+  }
+
+  return (
+    <div className="overflow-hidden border-2 border-wheat-900 bg-paper shadow-sm">
+      <div className="flex flex-wrap items-center gap-1 border-b-2 border-wheat-900 bg-elevated p-2">
+        {richTextButtons.map(({ command, label, title, value }) => {
+          const isActive = activeCommands.includes(command);
+
+          return (
+          <button
+            key={`${command}-${value ?? ""}`}
+            type="button"
+            title={title}
+            aria-label={title}
+            aria-pressed={isActive}
+            disabled={!hasSelection}
+            onMouseDown={keepEditorSelection}
+            onClick={() => runCommand(command, value)}
+            className={`min-h-8 rounded-md border px-2.5 text-xs font-black transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              isActive
+                ? "border-accent bg-accent text-white"
+                : "border-wheat-900 hover:bg-black hover:text-white"
+            }`}
+          >
+            {label}
+          </button>
+          );
+        })}
+        <span className="ml-auto text-xs font-bold text-muted">{hint}</span>
+      </div>
+      <div
+        ref={editorRef}
+        id={id}
+        contentEditable
+        suppressContentEditableWarning
+        data-placeholder={placeholder}
+        onInput={(event) => {
+          onChange(event.currentTarget.innerHTML);
+          updateSelectionState();
+        }}
+        onKeyUp={(event) => {
+          onKeyUp(event);
+          updateSelectionState();
+        }}
+        onMouseUp={updateSelectionState}
+        {...writingMode}
+        className={`rich-text-editor min-h-96 px-4 py-3 text-lg leading-9 outline-none focus:ring-2 focus:ring-wheat-900 ${writingMode.className}`}
+      />
+    </div>
+  );
 }
 
 export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
@@ -374,7 +591,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
     );
   }
 
-  async function saveStory(nextStatus = status) {
+  async function saveStory(nextStatus = status, publishedWindow?: Window | null) {
     if (saveInFlight.current) return;
     saveInFlight.current = true;
     setSaveError("");
@@ -429,10 +646,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           title: fields.title.trim(),
           slug: isEditing ? article?.slug : slugify(fields.title),
           excerpt: fields.excerpt.trim(),
-          body: fields.body
-            .split(/\n{2,}/)
-            .map((paragraph) => paragraph.trim())
-            .filter(Boolean),
+          body: articleBodyFromEditor(fields.body),
           language,
           category,
           contentType,
@@ -467,6 +681,7 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
       }>(response);
 
       if (!response.ok) {
+        publishedWindow?.close();
         const message =
           result.error ||
           `Story could not be saved. Server returned HTTP ${response.status}.`;
@@ -485,8 +700,22 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
             ? "Submitted for approval."
             : "Story saved.",
       );
+      // If the story was published, open the live article in a new tab so the
+      // admin sees what readers will see.
+      if (savedStatus === "published" && result.slug) {
+        const articleUrl = `/article/${encodeURIComponent(result.slug)}`;
+        if (publishedWindow) {
+          publishedWindow.location.href = articleUrl;
+        } else {
+          window.open(articleUrl, "_blank");
+        }
+        return;
+      } else {
+        publishedWindow?.close();
+      }
       router.push("/admin");
     } catch (error) {
+      publishedWindow?.close();
       const message =
         error instanceof Error
           ? error.message
@@ -524,6 +753,38 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
     setFields({ title, excerpt, body });
     setLanguage("ur");
     setIsTransliterating(false);
+  }
+
+  function openPreview() {
+    try {
+      const mediaType =
+        uploadedMedia?.mediaType || (contentType === "video" ? "video" : "image");
+      const fallbackImage =
+        "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1400&q=80";
+      const mediaUrl = uploadedMedia?.url || article?.mediaUrl || fallbackImage;
+      const preview = {
+        title: fields.title,
+        excerpt: fields.excerpt,
+        body: articleBodyFromEditor(fields.body),
+        language,
+        author,
+        tags: tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+        category,
+        contentType,
+        featuredImage:
+          mediaType === "image" ? mediaUrl : article?.featuredImage || fallbackImage,
+        mediaUrl,
+        mediaType,
+        imageCaption: fields.excerpt.trim() || fields.title.trim(),
+      };
+      localStorage.setItem("admin_preview_article", JSON.stringify(preview));
+      window.open("/admin/preview", "_blank");
+    } catch {
+      toast.error("Could not open preview (popups might be blocked).");
+    }
   }
 
   return (
@@ -568,16 +829,14 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           <label htmlFor="body" className="editor-label">
             Body
           </label>
-          <textarea
+          <RichTextEditor
             id="body"
-            rows={14}
             value={fields.body}
-            onChange={(event) => updateField("body", event.target.value)}
+            onChange={(value) => updateField("body", value)}
             onKeyUp={(event) =>
-              handleUrduInputKey("body", event.key, event.currentTarget.value)
+              handleUrduInputKey("body", event.key, event.currentTarget.innerText)
             }
-            {...writingMode}
-            className={`${inputClass} ${writingMode.className} leading-8`}
+            writingMode={writingMode}
             placeholder={copy.body}
           />
         </div>
@@ -816,14 +1075,24 @@ export function NewsEditorForm({ article, currentRole }: NewsEditorFormProps) {
           </button>
           <button
             type="button"
+            onClick={openPreview}
+            disabled={isSaving}
+            className="border-2 border-wheat-900 cursor-pointer px-3 py-2 text-sm font-black uppercase tracking-[0.12em] hover:bg-black hover:text-black hover:bg-white disabled:cursor-wait disabled:opacity-60"
+          >
+            Preview
+          </button>
+          <button
+            type="button"
             disabled={isUploading || isSaving}
-            onClick={() =>
-              saveStory(
+            onClick={() => {
+              const nextStatus =
                 status === "scheduled" || status === "pending_approval"
                   ? status
-                  : "published",
-              )
-            }
+                  : "published";
+              const publishedWindow =
+                nextStatus === "published" ? window.open("about:blank", "_blank") : null;
+              saveStory(nextStatus, publishedWindow);
+            }}
             className="border-2 border-wheat-900 cursor-pointer bg-black px-3 py-2 text-sm font-black uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60"
           >
             {isSaving ? "Saving..." : primaryActionLabel}

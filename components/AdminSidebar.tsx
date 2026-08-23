@@ -7,6 +7,7 @@ const adminLinks = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/editor", label: "New story" },
   { href: "/admin/archive", label: "Archive" },
+  { href: "/admin/account", label: "Account" },
 ];
 
 export function AdminSidebar() {

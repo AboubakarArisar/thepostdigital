@@ -5,6 +5,21 @@ import type { Article } from "@/lib/types";
 // and search engines do not count them as links. Split each paragraph on the
 // URLs and render those runs as real anchors.
 const urlPattern = /\bhttps?:\/\/[^\s<>()[\]{}"']+/gi;
+const allowedRichTextTags = new Set([
+  "a",
+  "b",
+  "blockquote",
+  "br",
+  "div",
+  "em",
+  "i",
+  "li",
+  "ol",
+  "p",
+  "strong",
+  "u",
+  "ul",
+]);
 
 // A trailing . , ! ? : ; is almost always sentence punctuation rather than part
 // of the address, and a closing bracket only belongs if it was opened.
@@ -60,6 +75,40 @@ function linkify(text: string) {
   return nodes;
 }
 
+function escapeAttribute(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function sanitizeRichTextHtml(html: string) {
+  return html
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, "")
+    .replace(/<\/?([a-z0-9]+)\b([^>]*)>/gi, (tag, rawName, attrs) => {
+      const name = String(rawName).toLowerCase();
+      const isClosing = tag.startsWith("</");
+
+      if (!allowedRichTextTags.has(name)) return "";
+      if (isClosing) return `</${name}>`;
+      if (name !== "a") return `<${name}>`;
+
+      const hrefMatch = String(attrs).match(/\shref=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+      const href = hrefMatch?.[1] ?? hrefMatch?.[2] ?? hrefMatch?.[3] ?? "";
+
+      return /^https?:\/\//i.test(href) || /^mailto:/i.test(href)
+        ? `<a href="${escapeAttribute(href)}" target="_blank" rel="noopener">`
+        : "<a>";
+    });
+}
+
+function isRichTextHtml(value: string) {
+  return /<\/?(b|strong|i|em|u|blockquote|ul|ol|li|p|div|br|a)\b/i.test(value);
+}
+
 export function ArticleBody({ article }: { article: Article }) {
   return (
     <div
@@ -69,9 +118,17 @@ export function ArticleBody({ article }: { article: Article }) {
         article.language === "ur" ? "font-urdu text-right" : "text-left"
       }`}
     >
-      {article.body.map((paragraph) => (
-        <p key={paragraph}>{linkify(paragraph)}</p>
-      ))}
+      {article.body.map((paragraph, index) =>
+        isRichTextHtml(paragraph) ? (
+          <div
+            key={`${index}-${paragraph}`}
+            className="rich-article-html"
+            dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(paragraph) }}
+          />
+        ) : (
+          <p key={`${index}-${paragraph}`}>{linkify(paragraph)}</p>
+        ),
+      )}
     </div>
   );
 }

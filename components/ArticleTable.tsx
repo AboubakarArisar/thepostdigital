@@ -22,6 +22,7 @@ const statusClass = {
 // seven glyphs.
 const iconPaths = {
   edit: "M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z",
+  preview: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
   send: "m22 2-7 20-4-9-9-4Z",
   check: "M20 6 9 17l-5-5",
   hide: "M9.9 4.24A9.1 9.1 0 0 1 12 4c6.4 0 10 7 10 7a18 18 0 0 1-2.16 3.19M6.61 6.61A18 18 0 0 0 2 11s3.6 7 10 7a9 9 0 0 0 5.39-1.61M2 2l20 20",
@@ -156,7 +157,13 @@ export function ArticleTable({
 
   // Re-sync when the server sends a fresh list (e.g. after router.refresh()).
   useEffect(() => {
-    setItems(articles);
+    let alive = true;
+    queueMicrotask(() => {
+      if (alive) setItems(articles);
+    });
+    return () => {
+      alive = false;
+    };
   }, [articles]);
 
   const visible =
@@ -221,6 +228,34 @@ export function ArticleTable({
       refresh();
     } else {
       toast.error("Could not update this story.");
+    }
+  }
+
+  async function previewStory(article: Article) {
+    const previewWindow = window.open("about:blank", "_blank");
+
+    try {
+      const response = await fetch(articleApiRoute(article.slug));
+
+      if (!response.ok) {
+        previewWindow?.close();
+        toast.error("Could not open the preview.");
+        return;
+      }
+
+      localStorage.setItem(
+        "admin_preview_article",
+        JSON.stringify(await response.json()),
+      );
+
+      if (previewWindow) {
+        previewWindow.location.href = "/admin/preview";
+      } else {
+        window.open("/admin/preview", "_blank");
+      }
+    } catch {
+      previewWindow?.close();
+      toast.error("Could not open the preview. Check your connection.");
     }
   }
 
@@ -404,6 +439,15 @@ export function ArticleTable({
                   >
                     <ActionIcon name="edit" />
                   </Link>
+                  <ActionButton
+                    label="Preview story"
+                    name="preview"
+                    disabled={locked}
+                    busy={busyKey === `${article.slug}:preview`}
+                    onClick={() =>
+                      run(`${article.slug}:preview`, () => previewStory(article))
+                    }
+                  />
 
                   {isSuper ? (
                     <ActionButton

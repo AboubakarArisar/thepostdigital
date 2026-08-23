@@ -47,6 +47,15 @@ export const seededAdmin = {
   name: process.env.ADMIN_NAME || "Super Admin",
 };
 
+const seededSuperAdmins = [
+  seededAdmin,
+  {
+    email: "hydershar22003@gmail.com",
+    password: "thepostdigital!",
+    name: "Hyder Shar",
+  },
+];
+
 export type AdminSession = {
   email: string;
   role: AdminRole;
@@ -82,6 +91,18 @@ function verifyPassword(password: string, storedHash: string) {
   return safeEqual(candidate, storedHash);
 }
 
+function seededPasswordStillActive(user: AdminUser, password: string) {
+  const seededMatch = seededSuperAdmins.find(
+    (admin) => admin.email.toLowerCase() === user.email,
+  );
+
+  return (
+    Boolean(seededMatch) &&
+    password === seededMatch?.password &&
+    verifyPassword(seededMatch.password, user.passwordHash)
+  );
+}
+
 async function writeAdminUsers(users: AdminUser[]) {
   if (hasDatabase) return dbReplaceAdminUsers(users);
 
@@ -99,18 +120,42 @@ async function readBundledAdminUsers() {
   }
 }
 
-function seededSuperAdmin(): AdminUser {
+function seededSuperAdmin(admin = seededAdmin): AdminUser {
   const now = new Date().toISOString();
   return {
-    email: seededAdmin.email.toLowerCase(),
-    name: seededAdmin.name,
-    passwordHash: hashPassword(seededAdmin.password),
+    email: admin.email.toLowerCase(),
+    name: admin.name,
+    passwordHash: hashPassword(admin.password),
     role: "super_admin",
     status: "approved",
     createdAt: now,
     verifiedAt: now,
-    verifiedBy: seededAdmin.email.toLowerCase(),
+    verifiedBy: admin.email.toLowerCase(),
   };
+}
+
+function ensureSeededSuperAdmins(users: AdminUser[]) {
+  let changed = false;
+  let nextUsers = users;
+
+  for (const admin of seededSuperAdmins) {
+    const email = admin.email.toLowerCase();
+    const existing = nextUsers.find((user) => user.email === email);
+
+    if (!existing) {
+      nextUsers = [seededSuperAdmin(admin), ...nextUsers];
+      changed = true;
+    } else if (existing.role !== "super_admin" || existing.status !== "approved") {
+      nextUsers = nextUsers.map((user) =>
+        user.email === email
+          ? { ...user, role: "super_admin", status: "approved" }
+          : user,
+      );
+      changed = true;
+    }
+  }
+
+  return { users: nextUsers, changed };
 }
 
 export async function getAdminUsers() {
@@ -120,33 +165,23 @@ export async function getAdminUsers() {
     users = await dbGetAdminUsers();
 
     if (users.length === 0) {
-      users = [seededSuperAdmin()];
+      users = seededSuperAdmins.map((admin) => seededSuperAdmin(admin));
       await writeAdminUsers(users);
     }
   } else {
     try {
       users = JSON.parse(await readFile(userStorePath, "utf8")) as AdminUser[];
     } catch {
-      users = (await readBundledAdminUsers()) ?? [seededSuperAdmin()];
+      users =
+        (await readBundledAdminUsers()) ??
+        seededSuperAdmins.map((admin) => seededSuperAdmin(admin));
       await writeAdminUsers(users);
     }
   }
 
-  const superEmail = seededAdmin.email.toLowerCase();
-  const existingSuper = users.find((user) => user.email === superEmail);
-
-  if (!existingSuper) {
-    users = [seededSuperAdmin(), ...users];
-    await writeAdminUsers(users);
-  } else if (
-    existingSuper.role !== "super_admin" ||
-    existingSuper.status !== "approved"
-  ) {
-    users = users.map((user) =>
-      user.email === superEmail
-        ? { ...user, role: "super_admin", status: "approved" }
-        : user,
-    );
+  const ensured = ensureSeededSuperAdmins(users);
+  users = ensured.users;
+  if (ensured.changed) {
     await writeAdminUsers(users);
   }
 
@@ -158,17 +193,53 @@ export async function validateAdminCredentials(email: string, password: string) 
 
   const normalizedEmail = email.toLowerCase();
   const user = (await getAdminUsers()).find((item) => item.email === normalizedEmail);
-
   if (!user || user.status !== "approved") return null;
 
   const isValid =
-    normalizedEmail === seededAdmin.email.toLowerCase()
-      ? password === seededAdmin.password || verifyPassword(password, user.passwordHash)
-      : verifyPassword(password, user.passwordHash);
+    verifyPassword(password, user.passwordHash) ||
+    seededPasswordStillActive(user, password);
 
   if (!isValid) return null;
 
   return { email: user.email, role: user.role };
+}
+
+export async function changeAdminPassword({
+  email,
+  currentPassword,
+  newPassword,
+}: {
+  email: string;
+  currentPassword: string;
+  newPassword: string;
+}) {
+  if (newPassword.length < 8) {
+    throw new Error("New password must be at least 8 characters.");
+  }
+
+  const normalizedEmail = email.toLowerCase();
+  const users = await getAdminUsers();
+  const user = users.find((item) => item.email === normalizedEmail);
+
+  if (!user || user.status !== "approved") {
+    throw new Error("Admin account was not found.");
+  }
+
+  const currentIsValid =
+    verifyPassword(currentPassword, user.passwordHash) ||
+    seededPasswordStillActive(user, currentPassword);
+
+  if (!currentIsValid) {
+    throw new Error("Current password is incorrect.");
+  }
+
+  await writeAdminUsers(
+    users.map((item) =>
+      item.email === normalizedEmail
+        ? { ...item, passwordHash: hashPassword(newPassword) }
+        : item,
+    ),
+  );
 }
 
 export async function createPendingAdminAccount({
