@@ -64,6 +64,7 @@ const richTextButtons: Array<{
   { command: "bold", label: "Bold", title: "Bold selected text" },
   { command: "italic", label: "Italic", title: "Italicize selected text" },
   { command: "underline", label: "Underline", title: "Underline selected text" },
+  { command: "createLink", label: "Link", title: "Add backlink to selected text" },
   {
     command: "insertUnorderedList",
     label: "Bullets",
@@ -239,6 +240,17 @@ function articleBodyFromEditor(body: string) {
     .filter(Boolean);
 }
 
+function normalizeEditorLink(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  const href = /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  return /^https?:\/\//i.test(href) || /^mailto:/i.test(href) ? href : "";
+}
+
 function RichTextEditor({
   id,
   value,
@@ -334,11 +346,20 @@ function RichTextEditor({
     selection?.addRange(savedSelection);
     editor.focus();
 
-    const nextValue =
+    let nextValue =
       command === "formatBlock" &&
       selection?.anchorNode?.parentElement?.closest(commandValue ?? "")
         ? "p"
         : commandValue;
+
+    if (command === "createLink") {
+      const href = normalizeEditorLink(window.prompt("Backlink URL") || "");
+      if (!href) {
+        setHint("Enter a valid http, https, or mailto link.");
+        return;
+      }
+      nextValue = href;
+    }
 
     document.execCommand(command, false, nextValue);
 
