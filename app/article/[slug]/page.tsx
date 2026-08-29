@@ -31,7 +31,7 @@ function articleDescription(article: Article) {
 
 function sidebarStoryLimit(article: Article) {
   const bodyLength = article.body.join(" ").replace(/<[^>]*>/g, " ").length;
-  return Math.min(18, Math.max(4, Math.ceil(bodyLength / 220)));
+  return Math.min(16, Math.max(10, Math.ceil(bodyLength / 220)));
 }
 
 export async function generateMetadata({
