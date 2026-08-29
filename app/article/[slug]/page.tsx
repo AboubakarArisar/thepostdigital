@@ -29,6 +29,11 @@ function articleDescription(article: Article) {
   return source.length > 200 ? `${source.slice(0, 197).trimEnd()}…` : source;
 }
 
+function sidebarStoryLimit(article: Article) {
+  const bodyLength = article.body.join(" ").replace(/<[^>]*>/g, " ").length;
+  return Math.min(18, Math.max(4, Math.ceil(bodyLength / 220)));
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -81,14 +86,15 @@ export default async function ArticlePage({
 
   if (!article) notFound();
 
+  const importantLimit = sidebarStoryLimit(article);
   const [related, important] = await Promise.all([
     getRelatedArticles(article),
-    // Top-stories rail: enough live cards to fill the desktop sidebar.
+    // Top-stories rail scales with the story length so the side column stays filled.
     getCards({
       liveOnly: true,
       language: article.language,
       excludeSlug: article.slug,
-      limit: 8,
+      limit: importantLimit,
     }),
   ]);
 
