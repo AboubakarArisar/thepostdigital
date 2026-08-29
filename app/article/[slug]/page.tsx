@@ -83,12 +83,12 @@ export default async function ArticlePage({
 
   const [related, important] = await Promise.all([
     getRelatedArticles(article),
-    // Top-stories rail: 3 newest live cards in the same language, body stripped.
+    // Top-stories rail: enough live cards to fill the desktop sidebar.
     getCards({
       liveOnly: true,
       language: article.language,
       excludeSlug: article.slug,
-      limit: 3,
+      limit: 8,
     }),
   ]);
 
